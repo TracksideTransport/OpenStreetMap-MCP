@@ -1,14 +1,16 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import { filterAndPage, type MapElement } from "../bbox.js";
+import { SERVER_NAME, VERSION } from "../version.js";
 import { READ_ONLY, safe, type Ctx } from "./util.js";
 
 const type = z.enum(["node", "way", "relation"]);
 
-export function registerReadTools(server: McpServer, { osm }: Ctx) {
+export function registerReadTools(server: McpServer, { osm, cfg }: Ctx) {
   server.registerTool(
     "osm_capabilities",
-    { description: "Get API capabilities and limits of the connected OSM server (max bbox area, changeset size, timeouts).", inputSchema: z.object({}), annotations: READ_ONLY },
-    safe(async () => osm.getJson("/capabilities.json")),
+    { description: "Get API capabilities and limits of the connected OSM server (max bbox area, changeset size, timeouts), plus which openstreetmap-mcp version and OSM server this is (mcp.version).", inputSchema: z.object({}), annotations: READ_ONLY },
+    safe(async () => ({ mcp: { name: SERVER_NAME, version: VERSION, environment: cfg.env, api: cfg.apiBase }, ...(await osm.getJson("/capabilities.json")) })),
   );
 
   server.registerTool(
@@ -67,16 +69,33 @@ export function registerReadTools(server: McpServer, { osm }: Ctx) {
   server.registerTool(
     "osm_get_bbox",
     {
-      description: "Download all data in a bounding box. The API limits the area (see osm_capabilities, default 0.25 square degrees) and node count; keep boxes small.",
+      description:
+        "Download the OSM data in a bounding box, filtered and paged so the result is always complete valid JSON. " +
+        "The API limits the area (see osm_capabilities, default 0.25 square degrees) and returns every node of every way that touches the box, so even a tiny box in a dense city can hold thousands of elements. " +
+        "Use tag_filters (for example [\"railway=subway_entrance\", \"highway=elevator\"]), types, tagged_only, inside_bbox_only and compact to get just what you need, and page with next_offset when it is not null. " +
+        "Unfiltered results are sorted as the API sends them (by type, then id), so tagged features can sit on later pages.",
       inputSchema: z.object({
         min_lon: z.number().min(-180).max(180),
         min_lat: z.number().min(-90).max(90),
         max_lon: z.number().min(-180).max(180),
         max_lat: z.number().min(-90).max(90),
+        types: z.array(z.enum(["node", "way", "relation"])).max(3).optional().describe("Keep only these element types"),
+        tag_filters: z.array(z.string().min(1).max(300)).max(20).optional().describe('Keep elements with ANY of these tags: "key" (any value) or "key=value"'),
+        tagged_only: z.boolean().default(false).describe("Skip elements without tags (for example the untagged nodes of ways)"),
+        inside_bbox_only: z.boolean().default(false).describe("Drop nodes outside the box; the API also returns far-away nodes of ways that merely touch it. Ways keep their full node id lists."),
+        compact: z.boolean().default(false).describe("Return only type, id, lat, lon, tags, nodes and members (drops version, timestamp, changeset, uid, user)"),
+        limit: z.number().int().min(1).max(2000).default(200).describe("Maximum elements per page; a page may be shorter to stay within the size cap"),
+        offset: z.number().int().min(0).default(0).describe("Start at this element of the filtered list (use the previous next_offset)"),
       }),
       annotations: READ_ONLY,
     },
-    safe(async (b) => osm.getJson("/map.json", { query: { bbox: `${b.min_lon},${b.min_lat},${b.max_lon},${b.max_lat}` }, auth: "optional" })),
+    safe(async (a) => {
+      const box = { min_lon: a.min_lon, min_lat: a.min_lat, max_lon: a.max_lon, max_lat: a.max_lat };
+      const json = await osm.getJson("/map.json", { query: { bbox: `${box.min_lon},${box.min_lat},${box.max_lon},${box.max_lat}` }, auth: "optional" });
+      const all: MapElement[] = json.elements ?? [];
+      const page = filterAndPage(all, { types: a.types, tagFilters: a.tag_filters, taggedOnly: a.tagged_only, insideOnly: a.inside_bbox_only ? box : undefined, compact: a.compact, offset: a.offset, limit: a.limit });
+      return { bbox: box, total_in_area: all.length, ...page };
+    }),
   );
 
   server.registerTool(

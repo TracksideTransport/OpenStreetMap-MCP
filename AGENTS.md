@@ -31,6 +31,7 @@ Run typecheck and tests before every commit.
 ## Conventions
 - MCP SDK is `@modelcontextprotocol/server` v2: `server.registerTool(name, { description, inputSchema: z.object(...), annotations }, handler)`, with `zod/v4`. Check the current docs (Context7) before changing SDK usage.
 - Reads use the API's `.json` endpoints; writes send XML built in `src/osm.ts`.
+- Tool results go through `ok()` (via `safe()`), which keeps them within 60,000 characters **and valid JSON** by dropping whole array items. Never slice serialized JSON text. A tool that can return big data should offer filters and paging instead (see `osm_get_bbox`).
 - Wrap every handler in `safe()` so failures return `isError` results instead of throwing.
 - Never write to stdout (it is the MCP transport); log to stderr only.
 - Write tools must set accurate `annotations` (`WRITE` / `DESTRUCTIVE`) and mention that edits are public.
@@ -45,4 +46,4 @@ Run typecheck and tests before every commit.
 - **Track work in GitHub issues.** Every feature, bugfix, or task starts as an issue (use the templates). Plan in the issue body; link related issues (sub-issue, blocked-by, relates-to) only when the relationship is real.
 - Branch from `main` as `feat/<issue>-slug`, `fix/<issue>-slug`, or `chore/<issue>-slug`. Open a PR whose body contains `Closes #<n>`.
 - Keep `CHANGELOG.md` updated under `## [Unreleased]` for user-visible changes.
-- Releases: bump version in `package.json` and `src/server.ts`, move Unreleased notes under the new version, tag `vX.Y.Z`; the Release workflow publishes to npm via trusted publishing (OIDC, no token) and creates the GitHub release. Both steps are skipped if they already exist.
+- Releases: bump the version in `package.json` (the server reads it at runtime via `src/version.ts`, so there is nothing else to keep in sync), move Unreleased notes under the new version, tag `vX.Y.Z`; the Release workflow publishes to npm via trusted publishing (OIDC, no token) and creates the GitHub release. Both steps are skipped if they already exist.

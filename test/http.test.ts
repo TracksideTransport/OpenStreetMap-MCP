@@ -142,6 +142,11 @@ describe("discovery", () => {
     expect(as).toMatchObject({ issuer: base, authorization_endpoint: `${base}/authorize`, token_endpoint: `${base}/token`, registration_endpoint: `${base}/register`, code_challenge_methods_supported: ["S256"], token_endpoint_auth_methods_supported: ["none"] });
   });
 
+  it("reports the server version on the health endpoint", async () => {
+    const { VERSION } = await import("../src/version.js");
+    expect(await (await fetch(`${base}/healthz`)).json()).toEqual({ ok: true, version: VERSION });
+  });
+
   it("challenges unauthenticated calls with a resource_metadata pointer", async () => {
     const r = await mcp(undefined, "tools/list");
     expect(r.status).toBe(401);

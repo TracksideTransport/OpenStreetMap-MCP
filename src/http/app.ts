@@ -6,6 +6,7 @@ import { createMcpHandler } from "@modelcontextprotocol/server";
 import type { AuthLike } from "../auth.js";
 import type { Config } from "../config.js";
 import { createServer } from "../server.js";
+import { VERSION } from "../version.js";
 import { consentPage, errorPage } from "./page.js";
 import { OAuthHttpError, OAuthProxy } from "./proxy.js";
 
@@ -69,7 +70,7 @@ export function createHttpApp(cfg: Config, proxy = new OAuthProxy(cfg)) {
 
   // Discovery: RFC 9728 protected resource metadata (+ mirrored RFC 8414 authorization server metadata).
   app.use(mcpAuthMetadataRouter({ oauthMetadata: proxy.metadata() as never, resourceServerUrl: new URL(proxy.resource) }));
-  app.get("/healthz", (_req, res) => void res.json({ ok: true }));
+  app.get("/healthz", (_req, res) => void res.json({ ok: true, version: VERSION }));
 
   app.post("/register", (req, res) => {
     noStore(res);
