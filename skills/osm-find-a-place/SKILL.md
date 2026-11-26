@@ -26,6 +26,19 @@ To work on the exact object, pass `osm_type` and `osm_id` to `osm_get_element` (
 - Start around the point rather than using the geocoder's box. About 0.002 degrees each way from the centre is roughly 200 metres in latitude (1 degree of latitude is about 111 km; a degree of longitude is shorter by the cosine of the latitude). Widen only if the user needs more.
 - If a call fails with "too many nodes" or "area too large", shrink the box. Do not split a big area into a grid of requests.
 
+## 3b. Ask `osm_get_bbox` for what you need, not everything
+
+A box a few hundred metres wide in a dense city can still hold well over a thousand elements (hundreds of kilobytes), because the API returns every node of every way that touches the box, including nodes far outside it. Results come back in API order (nodes, then ways, then relations, each by id), so the tagged features you want can sit on later pages. Filter instead of paging through everything:
+
+- `tag_filters`: keep elements that have ANY of the listed tags. Each is `"key"` (any value) or `"key=value"` (exact match; no wildcards inside the value). Example: `["railway=subway_entrance", "highway=elevator"]`.
+- `types`: only `node`, `way` and/or `relation`.
+- `tagged_only`: skip elements without tags, such as the untagged nodes of ways.
+- `inside_bbox_only`: drop nodes outside the box. Ways keep their full list of node ids, so a way can refer to nodes you were not sent.
+- `compact`: only type, id, coordinates, tags, node ids and members; drops version, timestamp, changeset and user. Use it unless you need the edit history fields.
+- `limit` and `offset`: paging. Read `total_matching`, and keep calling with the previous `next_offset` until it is `null`. A page may be shorter than `limit` so that it stays complete and within the size cap.
+
+Check `total_matching` before you page: if it is large, add filters or shrink the box rather than walking dozens of pages. If the user really wants everything in an area, say that an OSM extract is the right tool, not many API calls.
+
 ## 4. Nominatim rules (shared public service)
 
 The geocoder uses the public Nominatim service, which has very little capacity. Follow its usage policy:
