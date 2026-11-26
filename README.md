@@ -69,9 +69,11 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 
 **Map notes:** read — `osm_get_notes_in_bbox`, `osm_search_notes`, `osm_get_note`; write — `osm_create_note`, `osm_comment_note`, `osm_close_note`, `osm_reopen_note`
 
-**GPS traces:** read — `osm_get_trackpoints` (public points in a bbox, summarized), `osm_get_gpx_details`, `osm_get_gpx_data`, `osm_list_my_gpx_files`; write — `osm_upload_gpx` (private by default), `osm_update_gpx`, `osm_delete_gpx`
+**GPS traces:** read — `osm_get_trackpoints` (public points in a bbox, summarized), `osm_get_gpx_details`, `osm_get_gpx_data`, `osm_list_my_gpx_files`; write — `osm_upload_gpx`, `osm_update_gpx`, `osm_delete_gpx`
 
 **Preferences:** `osm_get_preferences`, `osm_set_preference`, `osm_delete_preference`
+
+> **GPS trace privacy:** OSM's API only accepts `trackable` (points shared anonymously, ordered, with timestamps) or `identifiable` (also listed publicly under your name) for uploads and changes; the legacy `private`/`public` values can no longer be set. Both publish the track points, so `osm_upload_gpx` has no default: the assistant must ask you which one you want.
 
 > The GPX and preference tools that act on your account need extra OAuth scopes that are **not** requested by default (so existing app registrations keep working): `read_gpx`, `write_gpx` and `write_prefs` (`read_prefs` is already included). Tick them on your OSM app, then add them via `OSM_SCOPES`, e.g. `OSM_SCOPES="read_prefs write_prefs write_api write_changeset_comments write_notes read_gpx write_gpx"`, and log in again. Without them those tools fail with a clear 403.
 

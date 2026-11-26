@@ -4,21 +4,25 @@ import { summarizeGpx } from "../gpx.js";
 import { DESTRUCTIVE, READ_ONLY, WRITE, safe, type Ctx } from "./util.js";
 
 const id = z.number().int().positive();
-const visibility = z.enum(["private", "public", "trackable", "identifiable"]);
-const PRIVACY = "GPS traces can reveal where someone lives, works, and travels: confirm visibility with the user, and prefer 'private'.";
+// The API only accepts these two for new or changed traces ("private"/"public" are legacy values that
+// can no longer be set), and both publish the points. There is no safe default, so callers must choose.
+const visibility = z.enum(["trackable", "identifiable"]);
+const VIS_HELP = "'trackable' shares the points anonymously (ordered, with timestamps); 'identifiable' also lists the trace publicly under the user's name.";
+const PRIVACY = `Every visibility OSM accepts publishes the track points, and GPS traces can reveal where someone lives, works and travels: ask the user which one they want (${VIS_HELP}) and never pick for them.`;
 const SCOPE = "Needs the read_gpx / write_gpx OAuth scope (add it to OSM_SCOPES and the OSM app registration).";
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const asArray = <T>(v: T | T[] | undefined): T[] => (v === undefined ? [] : Array.isArray(v) ? v : [v]);
 
-/** Details come back as JSON in either {gpx_file:{...}} or {gpx_files:[...]} shapes; be tolerant. */
+/** The JSON details response is {trace:{...}} (list: {traces:[...]}); older docs show gpx_file(s), so accept those too. */
 export function pickGpxFile(j: any): any {
-  return j?.gpx_file ?? j?.gpx_files?.[0] ?? j;
+  return j?.trace ?? j?.traces?.[0] ?? j?.gpx_file ?? j?.gpx_files?.[0] ?? j;
 }
 
-export function buildGpxMetadataXml(f: { name?: string; visibility: string; description: string; tags: string[] }): string {
+/** The update body must carry the trace id ("ID is required when updating"). */
+export function buildGpxMetadataXml(f: { id: number; name?: string; visibility: string; description: string; tags: string[] }): string {
   const tags = f.tags.map((t) => `<tag>${esc(t)}</tag>`).join("");
-  return `<osm><gpx_file${f.name ? ` name="${esc(f.name)}"` : ""} visibility="${esc(f.visibility)}"><description>${esc(f.description)}</description>${tags}</gpx_file></osm>`;
+  return `<osm><gpx_file id="${f.id}"${f.name ? ` name="${esc(f.name)}"` : ""} visibility="${esc(f.visibility)}"><description>${esc(f.description)}</description>${tags}</gpx_file></osm>`;
 }
 
 export function registerGpxTools(server: McpServer, { osm }: Ctx) {
@@ -82,13 +86,13 @@ export function registerGpxTools(server: McpServer, { osm }: Ctx) {
   server.registerTool(
     "osm_upload_gpx",
     {
-      description: `Upload a GPX file (pass its XML text). The file must contain <trkpt> points with timestamps. Defaults to private. ${PRIVACY} ${SCOPE} Uploads are processed asynchronously by OSM.`,
+      description: `Upload a GPX file (pass its XML text). The file must contain <trkpt> points with timestamps. visibility is required. ${PRIVACY} ${SCOPE} Uploads are processed asynchronously by OSM.`,
       inputSchema: z.object({
         gpx: z.string().min(20).max(25_000_000).describe("GPX XML content"),
         filename: z.string().min(1).max(100).default("track.gpx"),
         description: z.string().min(1).max(255),
         tags: z.array(z.string().min(1).max(50)).max(20).default([]),
-        visibility: visibility.default("private"),
+        visibility: visibility.describe(VIS_HELP),
       }),
       annotations: WRITE,
     },
@@ -106,7 +110,7 @@ export function registerGpxTools(server: McpServer, { osm }: Ctx) {
   server.registerTool(
     "osm_update_gpx",
     {
-      description: `Change a GPS trace's description, tags, or visibility (owner only). Omitted fields keep their current values. ${PRIVACY} ${SCOPE}`,
+      description: `Change a GPS trace's description, tags, or visibility (owner only). Omitted fields keep their current values. OSM cannot change a trace back to the legacy 'private' or 'public' values. ${PRIVACY} ${SCOPE}`,
       inputSchema: z.object({ id, description: z.string().min(1).max(255).optional(), tags: z.array(z.string().min(1).max(50)).max(20).optional(), visibility: visibility.optional() }),
       annotations: WRITE,
     },
@@ -114,6 +118,7 @@ export function registerGpxTools(server: McpServer, { osm }: Ctx) {
       if (a.description === undefined && a.tags === undefined && a.visibility === undefined) throw new Error("Nothing to do: provide description, tags, and/or visibility.");
       const cur = pickGpxFile(await osm.getJson(`/gpx/${a.id}.json`, { auth: "required" }));
       const next = {
+        id: a.id,
         name: cur.name as string | undefined,
         visibility: a.visibility ?? (cur.visibility as string),
         description: a.description ?? String(cur.description ?? ""),
@@ -121,7 +126,7 @@ export function registerGpxTools(server: McpServer, { osm }: Ctx) {
       };
       if (!next.description) throw new Error("The trace has no description; provide one (it cannot be empty).");
       await osm.send("PUT", `/gpx/${a.id}`, { body: buildGpxMetadataXml(next) });
-      return { id: a.id, ...next };
+      return next;
     }),
   );
 

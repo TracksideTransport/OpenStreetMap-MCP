@@ -41,11 +41,13 @@ describe("summarizeGpx", () => {
 
 describe("gpx metadata helpers", () => {
   it("builds escaped update XML", () => {
-    expect(buildGpxMetadataXml({ name: "a&b.gpx", visibility: "private", description: 'x < "y"', tags: ["t1", "a&b"] })).toBe(
-      '<osm><gpx_file name="a&amp;b.gpx" visibility="private"><description>x &lt; &quot;y&quot;</description><tag>t1</tag><tag>a&amp;b</tag></gpx_file></osm>',
+    expect(buildGpxMetadataXml({ id: 9, name: "a&b.gpx", visibility: "trackable", description: 'x < "y"', tags: ["t1", "a&b"] })).toBe(
+      '<osm><gpx_file id="9" name="a&amp;b.gpx" visibility="trackable"><description>x &lt; &quot;y&quot;</description><tag>t1</tag><tag>a&amp;b</tag></gpx_file></osm>',
     );
   });
-  it("picks the file out of either JSON shape", () => {
+  it("picks the trace out of the real JSON shapes (and the older documented ones)", () => {
+    expect(pickGpxFile({ trace: { id: 0 } })).toEqual({ id: 0 });
+    expect(pickGpxFile({ traces: [{ id: 4 }] })).toEqual({ id: 4 });
     expect(pickGpxFile({ gpx_file: { id: 1 } })).toEqual({ id: 1 });
     expect(pickGpxFile({ gpx_files: [{ id: 2 }] })).toEqual({ id: 2 });
     expect(pickGpxFile({ id: 3 })).toEqual({ id: 3 });

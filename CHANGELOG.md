@@ -7,7 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 - Streamable HTTP transport for remote deployments: `openstreetmap-mcp --http` (`OSM_PUBLIC_URL`, `OSM_HTTP_HOST`, `OSM_HTTP_PORT`, `OSM_HTTP_ALLOWED_HOSTS`, `OSM_MCP_TOKEN_TTL`). Authentication uses standard MCP OAuth: protected-resource and authorization-server metadata, dynamic client registration, PKCE (S256), a per-client consent page, and an OAuth proxy that keeps each user's OSM token server-side. Tested against the official MCP SDK client.
-- GPS trace tools: `osm_get_trackpoints`, `osm_get_gpx_details`, `osm_get_gpx_data`, `osm_list_my_gpx_files`, `osm_upload_gpx` (private by default), `osm_update_gpx`, `osm_delete_gpx`. GPX is summarized into compact JSON.
+- GPS trace tools: `osm_get_trackpoints`, `osm_get_gpx_details`, `osm_get_gpx_data`, `osm_list_my_gpx_files`, `osm_upload_gpx`, `osm_update_gpx`, `osm_delete_gpx`. GPX is summarized into compact JSON. OSM only accepts `trackable` or `identifiable` visibility (both publish the points), so uploads require an explicit choice with no default.
 - User preference tools: `osm_get_preferences`, `osm_set_preference`, `osm_delete_preference`.
 - The new account-level tools need the `read_gpx`, `write_gpx` and `write_prefs` scopes. They are not in the default `OSM_SCOPES`, so existing OSM app registrations keep working.
 

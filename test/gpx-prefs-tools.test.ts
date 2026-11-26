@@ -22,10 +22,10 @@ beforeAll(async () => {
       const json = (o: unknown) => void res.setHeader("content-type", "application/json").end(JSON.stringify(o));
       if (p === "/trackpoints") return void res.end(GPX);
       if (p === "/gpx/5/data.gpx") return void res.end(GPX);
-      if (p === "/gpx/5.json") return json({ gpx_file: { id: 5, name: "t.gpx", visibility: "private", description: "old desc", tags: ["a", "b"] } });
-      if (p === "/user/gpx_files.json") return json({ gpx_files: [{ id: 5 }] });
-      if (req.method === "POST" && p === "/gpx") return void res.end("77");
-      if (req.method === "PUT" && p === "/gpx/5") return void res.end("");
+      if (p === "/gpx/5.json") return json({ version: "0.6", trace: { id: 5, name: "t.gpx", visibility: "trackable", description: "old desc", tags: ["a", "b"] } });
+      if (p === "/user/gpx_files.json") return json({ version: "0.6", traces: [{ id: 5 }] });
+      if (req.method === "POST" && p === "/gpx") return /name="visibility"\r\n\r\n(trackable|identifiable)\r\n/.test(body) ? void res.end("77") : void res.writeHead(400).end('Trace : visibility: is not included in the list ("private")');
+      if (req.method === "PUT" && p === "/gpx/5") return body.includes('id="5"') ? void res.end("") : void res.writeHead(400).end("ID is required when updating.");
       if (req.method === "DELETE" && p === "/gpx/5") return void res.end("");
       if (p === "/user/preferences.json") return json({ preferences: { k: "v" } });
       if (req.method === "GET" && p === "/user/preferences/some%20key") return void res.end("the value");
@@ -62,31 +62,38 @@ describe("GPX tools", () => {
   });
 
   it("osm_list_my_gpx_files and osm_get_gpx_details", async () => {
-    expect((await s.call("osm_list_my_gpx_files")).gpx_files[0].id).toBe(5);
-    expect((await s.call("osm_get_gpx_details", { id: 5 })).gpx_file.description).toBe("old desc");
+    expect((await s.call("osm_list_my_gpx_files")).traces[0].id).toBe(5);
+    expect((await s.call("osm_get_gpx_details", { id: 5 })).trace.description).toBe("old desc");
     expect(seen[0].auth).toBe("Bearer tok");
   });
 
-  it("osm_upload_gpx sends multipart with a private default", async () => {
-    const r = await s.call("osm_upload_gpx", { gpx: GPX, description: "my ride", tags: ["bike", "test"] });
-    expect(r).toMatchObject({ gpx_id: 77, visibility: "private" });
+  it("osm_upload_gpx sends multipart and requires an explicit trackable/identifiable choice", async () => {
+    // no default and no legacy values: the model must choose (and ask the user)
+    for (const bad of [undefined, "private", "public"]) {
+      const r = await s.raw("osm_upload_gpx", { gpx: GPX, description: "my ride", ...(bad ? { visibility: bad } : {}) });
+      expect(r.isError).toBe(true);
+    }
+    expect(seen.filter((x) => x.method === "POST")).toHaveLength(0);
+    const r = await s.call("osm_upload_gpx", { gpx: GPX, description: "my ride", tags: ["bike", "test"], visibility: "trackable" });
+    expect(r).toMatchObject({ gpx_id: 77, visibility: "trackable" });
     const up = seen.find((x) => x.method === "POST")!;
     expect(up.ctype).toMatch(/^multipart\/form-data; boundary=/);
     expect(up.auth).toBe("Bearer tok");
     expect(up.body).toContain('name="description"');
     expect(up.body).toContain("my ride");
     expect(up.body).toContain("bike,test");
-    expect(up.body).toMatch(/name="visibility"\r\n\r\nprivate/);
+    expect(up.body).toMatch(/name="visibility"\r\n\r\ntrackable/);
     expect(up.body).toMatch(/name="file"; filename="track.gpx"/);
     expect(up.body).toContain("<trkpt");
   });
 
   it("osm_update_gpx merges with current metadata and PUTs XML", async () => {
-    const r = await s.call("osm_update_gpx", { id: 5, visibility: "public", tags: ["x"] });
-    expect(r).toMatchObject({ id: 5, visibility: "public", description: "old desc", tags: ["x"] });
+    const r = await s.call("osm_update_gpx", { id: 5, visibility: "identifiable", tags: ["x"] });
+    expect(r).toMatchObject({ id: 5, visibility: "identifiable", description: "old desc", tags: ["x"] });
     const put = seen.find((x) => x.method === "PUT")!;
-    expect(put.body).toBe('<osm><gpx_file name="t.gpx" visibility="public"><description>old desc</description><tag>x</tag></gpx_file></osm>');
+    expect(put.body).toBe('<osm><gpx_file id="5" name="t.gpx" visibility="identifiable"><description>old desc</description><tag>x</tag></gpx_file></osm>');
     expect((await s.raw("osm_update_gpx", { id: 5 })).isError).toBe(true);
+    expect((await s.raw("osm_update_gpx", { id: 5, visibility: "private" })).isError).toBe(true); // legacy value, rejected before any request
   });
 
   it("osm_delete_gpx deletes", async () => {
