@@ -20,7 +20,7 @@ export interface Config {
   tokenFile: string;
 }
 
-export const DEFAULT_SCOPES = ["read_prefs", "write_api", "write_notes"];
+export const DEFAULT_SCOPES = ["read_prefs", "write_api", "write_changeset_comments", "write_notes"];
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const osmEnv: OsmEnv = env.OSM_ENV === "dev" ? "dev" : "production";

@@ -5,6 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- `write_changeset_comments` is now a default OAuth scope (needed by `osm_comment_changeset`).
+
+### Fixed
+- Write requests now send `Accept: application/xml`; with JSON, `osm_upload_diff` lost its per-element results (new ids and versions).
+- Clarified that changeset comments are only accepted on closed changesets.
+
 ## [0.1.0] - 2026-11-26
 
 ### Added

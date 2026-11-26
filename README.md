@@ -16,7 +16,7 @@ Reading works with no setup. Editing needs an OAuth app.
 On [openstreetmap.org/oauth2/applications](https://www.openstreetmap.org/oauth2/applications) (or the sandbox) create an app:
 - **Redirect URI:** `http://127.0.0.1:8787/callback`
 - **Confidential application:** leave **unchecked** (public client using PKCE, no secret needed)
-- **Permissions:** `read_prefs`, `write_api`, `write_notes` (add others if you set `OSM_SCOPES`)
+- **Permissions:** `read_prefs`, `write_api`, `write_changeset_comments`, `write_notes` (add others if you set `OSM_SCOPES`)
 
 Copy the **Client ID**.
 
@@ -47,7 +47,7 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 | `OSM_CLIENT_SECRET` | – | Only for confidential apps |
 | `OSM_ACCESS_TOKEN` | – | Use a pre-made token instead of the login flow |
 | `OSM_ENV` | `production` | `dev` targets `master.apis.dev.openstreetmap.org` |
-| `OSM_SCOPES` | `read_prefs write_api write_notes` | Space/comma separated OAuth scopes |
+| `OSM_SCOPES` | `read_prefs write_api write_changeset_comments write_notes` | Space/comma separated OAuth scopes |
 | `OSM_REDIRECT_PORT` | `8787` | Loopback port; must match the registered redirect URI |
 | `OSM_API_BASE` / `OSM_WEB_BASE` | per env | Override hosts |
 | `OSM_USER_AGENT` | `openstreetmap-mcp/…` | Sent on every request (OSM requires one) |

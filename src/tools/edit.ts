@@ -62,7 +62,7 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
   server.registerTool(
     "osm_comment_changeset",
     {
-      description: "Post a comment on a changeset's discussion (any changeset, not only yours).",
+      description: "Post a comment on a changeset's discussion (any changeset, not only yours). OSM only accepts comments on CLOSED changesets, and this needs the write_changeset_comments scope.",
       inputSchema: z.object({ id, text: z.string().min(1).max(2000) }),
       annotations: WRITE,
     },

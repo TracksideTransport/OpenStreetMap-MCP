@@ -117,7 +117,9 @@ export class OsmClient {
   private async raw(method: string, path: string, opts: RequestOptions = {}): Promise<{ status: number; text: string }> {
     const url = new URL(`${this.cfg.apiBase}/api/0.6${path}`);
     for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined) url.searchParams.set(k, String(v));
-    const headers: Record<string, string> = { "user-agent": this.cfg.userAgent, accept: "application/json, application/xml;q=0.9, */*;q=0.5" };
+    // Writes must ask for XML: e.g. /changeset/N/upload answers with an empty JSON object otherwise, losing the diffResult.
+    const accept = method === "GET" ? "application/json, application/xml;q=0.9, */*;q=0.5" : "application/xml, text/plain;q=0.9, */*;q=0.5";
+    const headers: Record<string, string> = { "user-agent": this.cfg.userAgent, accept };
     const mode = opts.auth ?? "none";
     if (mode === "required") headers.authorization = `Bearer ${await this.auth.requireToken()}`;
     else if (mode === "optional") {
@@ -131,7 +133,7 @@ export class OsmClient {
       const hint =
         r.status === 401 ? " (authentication failed; re-run osm_login or check scopes)" :
         r.status === 403 ? " (forbidden; token may lack the required scope, or the changeset belongs to another user)" :
-        r.status === 409 ? " (conflict; the element version is stale or the changeset is closed)" :
+        r.status === 409 ? " (conflict; stale element version, changeset closed/not yet closed, or changeset full)" :
         r.status === 410 ? " (element has been deleted)" :
         r.status === 412 ? " (precondition failed; referenced elements are missing or still in use)" :
         r.status === 429 ? " (rate limited)" : "";

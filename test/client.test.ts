@@ -17,6 +17,8 @@ beforeAll(async () => {
       seen.push({ method: req.method, url: req.url, auth: req.headers.authorization, body });
       if (req.url?.startsWith("/api/0.6/node/1.json")) return void res.end('{"elements":[{"type":"node","id":1}]}');
       if (req.url === "/api/0.6/changeset/create") return void res.end("123");
+      if (req.url === "/api/0.6/changeset/5/upload")
+        return void res.end(String(req.headers.accept).startsWith("application/xml") ? '<diffResult><node old_id="-1" new_id="7" new_version="1"/></diffResult>' : '{"version":"0.6"}');
       if (req.url === "/api/0.6/way/9") return void res.writeHead(409).end("Version mismatch");
       res.writeHead(404).end("nope");
     });
@@ -43,6 +45,11 @@ describe("OsmClient", () => {
     expect(out).toBe("123");
     expect(seen.at(-1)?.auth).toBe("Bearer tok");
     expect(seen.at(-1)?.body).toBe("<osm/>");
+  });
+
+  it("requests XML on writes so diffResult is not lost", async () => {
+    const out = await mk("tok").send("POST", "/changeset/5/upload", { body: "<osmChange/>" });
+    expect(out).toContain("<diffResult>");
   });
 
   it("refuses writes without a token", async () => {
