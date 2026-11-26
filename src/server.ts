@@ -8,7 +8,7 @@ import { registerGeocodeTools } from "./tools/geocode.js";
 import { registerNoteTools } from "./tools/notes.js";
 import { registerReadTools } from "./tools/read.js";
 
-export const VERSION = "0.1.1";
+export const VERSION = "0.1.2";
 
 export function createServer(cfg: Config = loadConfig()) {
   const auth = new Auth(cfg);
