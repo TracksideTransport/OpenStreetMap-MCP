@@ -6,7 +6,8 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that lets AI assistants **read and edit OpenStreetMap** through the [OSM API v0.6](https://wiki.openstreetmap.org/wiki/API_v0.6), authenticating with **OAuth 2.0** (authorization code + PKCE).
 
-> ⚠️ Edits are public, permanent and attributed to your OSM account. Practise on the [sandbox server](https://master.apis.dev.openstreetmap.org) (`OSM_ENV=dev`) and follow the [OSM editing guidelines](https://wiki.openstreetmap.org/wiki/Editing_Standards_%26_Conventions). Don't run bulk or automated edits without following the [automated edits code of conduct](https://wiki.openstreetmap.org/wiki/Automated_Edits_code_of_conduct).
+> [!WARNING]
+> Edits are public, permanent and attributed to your OSM account. Practise on the [sandbox server](https://master.apis.dev.openstreetmap.org) (`OSM_ENV=dev`) and follow the [OSM editing guidelines](https://wiki.openstreetmap.org/wiki/Editing_Standards_%26_Conventions). Don't run bulk or automated edits without following the [automated edits code of conduct](https://wiki.openstreetmap.org/wiki/Automated_Edits_code_of_conduct).
 
 ## Quick start
 
