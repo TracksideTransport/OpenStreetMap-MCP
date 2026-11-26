@@ -1,0 +1,43 @@
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+export type OsmEnv = "production" | "dev";
+
+export interface Config {
+  env: OsmEnv;
+  /** Base of the REST API, e.g. https://api.openstreetmap.org */
+  apiBase: string;
+  /** Base of the website (hosts the OAuth 2.0 endpoints) */
+  webBase: string;
+  clientId: string | undefined;
+  /** Only for confidential apps; public clients using PKCE leave this unset */
+  clientSecret: string | undefined;
+  /** Pre-obtained token; skips the interactive login flow */
+  staticToken: string | undefined;
+  redirectPort: number;
+  scopes: string[];
+  userAgent: string;
+  tokenFile: string;
+}
+
+export const DEFAULT_SCOPES = ["read_prefs", "write_api", "write_notes"];
+
+export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  const osmEnv: OsmEnv = env.OSM_ENV === "dev" ? "dev" : "production";
+  const dev = osmEnv === "dev";
+  const apiBase = (env.OSM_API_BASE ?? (dev ? "https://master.apis.dev.openstreetmap.org" : "https://api.openstreetmap.org")).replace(/\/+$/, "");
+  const webBase = (env.OSM_WEB_BASE ?? (dev ? "https://master.apis.dev.openstreetmap.org" : "https://www.openstreetmap.org")).replace(/\/+$/, "");
+  const configDir = env.OSM_CONFIG_DIR ?? join(env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "openstreetmap-mcp");
+  return {
+    env: osmEnv,
+    apiBase,
+    webBase,
+    clientId: env.OSM_CLIENT_ID || undefined,
+    clientSecret: env.OSM_CLIENT_SECRET || undefined,
+    staticToken: env.OSM_ACCESS_TOKEN || undefined,
+    redirectPort: Number(env.OSM_REDIRECT_PORT ?? 8787),
+    scopes: env.OSM_SCOPES ? env.OSM_SCOPES.split(/[\s,]+/).filter(Boolean) : DEFAULT_SCOPES,
+    userAgent: env.OSM_USER_AGENT ?? "openstreetmap-mcp/0.1 (+https://github.com/sohampatwardhan/OpenStreetMap-MCP)",
+    tokenFile: join(configDir, `tokens-${osmEnv}.json`),
+  };
+}

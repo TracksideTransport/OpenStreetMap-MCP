@@ -1,0 +1,14 @@
+name: Bug report
+description: Something behaves unexpectedly
+type: Bug
+body:
+  - type: textarea
+    id: what
+    attributes: { label: What happened?, description: Include the tool called and its arguments (no tokens). }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: What did you expect? }
+  - type: input
+    id: env
+    attributes: { label: Version / environment, placeholder: "0.1.0, Node 22, OSM_ENV=dev" }

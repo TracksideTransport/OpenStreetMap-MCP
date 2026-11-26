@@ -1,0 +1,11 @@
+name: Task
+description: Chore, refactor, docs, CI or maintenance
+type: Task
+body:
+  - type: textarea
+    id: desc
+    attributes: { label: Description }
+    validations: { required: true }
+  - type: textarea
+    id: done
+    attributes: { label: Definition of done }
