@@ -37,4 +37,4 @@ Run typecheck and tests before every commit.
 - **Track work in GitHub issues.** Every feature, bugfix, or task starts as an issue (use the templates). Plan in the issue body; link related issues (sub-issue, blocked-by, relates-to) only when the relationship is real.
 - Branch from `main` as `feat/<issue>-slug`, `fix/<issue>-slug`, or `chore/<issue>-slug`. Open a PR whose body contains `Closes #<n>`.
 - Keep `CHANGELOG.md` updated under `## [Unreleased]` for user-visible changes.
-- Releases: bump version in `package.json` and `src/server.ts`, move Unreleased notes under the new version, tag `vX.Y.Z`; the Release workflow publishes to npm.
+- Releases: bump version in `package.json` and `src/server.ts`, move Unreleased notes under the new version, tag `vX.Y.Z`; the Release workflow publishes to npm via trusted publishing (OIDC, no token) and creates the GitHub release. Both steps are skipped if they already exist.
