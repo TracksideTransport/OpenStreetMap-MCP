@@ -7,6 +7,7 @@ import type { AuthLike } from "../auth.js";
 import type { Config } from "../config.js";
 import { createServer } from "../server.js";
 import { VERSION } from "../version.js";
+import type { SkillsCatalog } from "../skills.js";
 import { consentPage, errorPage } from "./page.js";
 import { OAuthHttpError, OAuthProxy } from "./proxy.js";
 
@@ -46,7 +47,7 @@ export function assertHttpConfig(cfg: Config): void {
   }
 }
 
-export function createHttpApp(cfg: Config, proxy = new OAuthProxy(cfg)) {
+export function createHttpApp(cfg: Config, proxy = new OAuthProxy(cfg), skills?: SkillsCatalog) {
   assertHttpConfig(cfg);
   const publicUrl = new URL(cfg.http.publicUrl);
   const secure = publicUrl.protocol === "https:";
@@ -115,7 +116,7 @@ export function createHttpApp(cfg: Config, proxy = new OAuthProxy(cfg)) {
   const node = toNodeHandler(
     createMcpHandler((ctx) => {
       if (!ctx.authInfo) throw new Error("unauthenticated");
-      return createServer(cfg, new RequestAuth(proxy, ctx.authInfo.token));
+      return createServer(cfg, new RequestAuth(proxy, ctx.authInfo.token), skills);
     }),
   );
   app.all("/mcp", auth, (req, res) => void node(req, res, req.body));
@@ -134,8 +135,8 @@ export function createHttpApp(cfg: Config, proxy = new OAuthProxy(cfg)) {
   return { app, proxy };
 }
 
-export function startHttpServer(cfg: Config): Promise<Server> {
-  const { app } = createHttpApp(cfg);
+export function startHttpServer(cfg: Config, skills?: SkillsCatalog): Promise<Server> {
+  const { app } = createHttpApp(cfg, undefined, skills);
   return new Promise((resolve, reject) => {
     const server = app.listen(cfg.http.port, cfg.http.host, () => resolve(server));
     server.once("error", reject);

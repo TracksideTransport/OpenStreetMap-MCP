@@ -2,6 +2,7 @@
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import { loadConfig } from "./config.js";
 import { createServer, VERSION } from "./server.js";
+import { loadServerSkills } from "./skills.js";
 
 const HELP = `openstreetmap-mcp ${VERSION}: MCP server for reading and editing OpenStreetMap
 
@@ -41,13 +42,14 @@ function parseArgs(argv: string[]): { http: boolean; env: NodeJS.ProcessEnv } {
 try {
   const { http, env } = parseArgs(process.argv.slice(2));
   const cfg = loadConfig(env);
+  const skills = await loadServerSkills();
   if (http) {
     const { startHttpServer } = await import("./http/app.js"); // loaded lazily: stdio users never pay for express
-    await startHttpServer(cfg);
+    await startHttpServer(cfg, skills);
     console.error(`openstreetmap-mcp ${VERSION} listening on ${cfg.http.host}:${cfg.http.port}; MCP endpoint ${cfg.http.publicUrl}/mcp (${cfg.env}: ${cfg.apiBase})`);
     console.error(`OSM OAuth app redirect URI must be: ${cfg.http.publicUrl}/oauth/callback`);
   } else {
-    await createServer(cfg).connect(new StdioServerTransport());
+    await createServer(cfg, undefined, skills).connect(new StdioServerTransport());
     console.error("openstreetmap-mcp running on stdio");
   }
 } catch (e) {

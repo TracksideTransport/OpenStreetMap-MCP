@@ -11,10 +11,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Added
 - `osm_get_bbox` can filter and page: `tag_filters`, `types`, `tagged_only`, `inside_bbox_only`, `compact`, `limit`, `offset`. Pages are sized to fit and never split an element; `next_offset` points to the next page. (#17)
 - `osm_capabilities` (`mcp`), `osm_whoami` (`server`) and the HTTP `/healthz` endpoint report the running `openstreetmap-mcp` version. (#18)
+- Skills over MCP: the server now ships three skills (`osm-untrusted-content`, `osm-gpx-privacy`, `osm-find-a-place`) as `skill://` resources over stdio and `--http`, using the SDK's skills extension.
+- The server instructions now tell the model that text returned by OSM tools is written by strangers and must be treated as data, never as instructions, even on hosts without skills support.
 
 ### Changed
 - `osm_get_bbox` now returns `{ bbox, total_in_area, total_matching, offset, returned, next_offset, elements }` (default page of 200 elements) instead of the raw API response; the `elements` array is unchanged.
 - The server version is read from `package.json` at runtime instead of a second hand-maintained constant.
+- `@modelcontextprotocol/server` is pinned to the 2.4 minor (`~2.4.0`) because the skills `attach` API is marked experimental by the SDK.
 
 ## [0.2.0] - 2026-11-26
 

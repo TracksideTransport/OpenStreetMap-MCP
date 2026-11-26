@@ -13,6 +13,7 @@ An MCP server (stdio) that reads and edits OpenStreetMap data through the [OSM A
 - `src/osm.ts` – HTTP client, XML builders/parsers, error mapping.
 - `src/nominatim.ts` – Nominatim client (opt-in geocoding; enforces 1 req/s, caches, per the Nominatim usage policy).
 - `src/patch.ts` – tag-patch logic behind `osm_patch_tags`.
+- `skills/` – Agent Skills served as `skill://` resources (one folder per skill, `SKILL.md` + optional references); `src/skills.ts` loads them once at startup and `createServer` attaches them. Shipped in the npm package via `files`.
 - `src/gpx.ts` – GPX summarizer (keeps thousands of points out of the model's context).
 - `src/http/` – `--http` transport: `app.ts` (Express wiring, per-request server bound to the caller's OSM token), `proxy.ts` (the OAuth authorization server in front of OSM), `store.ts` (bounded TTL maps), `page.ts` (consent page).
 - `src/tools/{auth,read,edit,notes,gpx,prefs,geocode}.ts` – tool definitions; `util.ts` has shared helpers.
@@ -39,6 +40,7 @@ Run typecheck and tests before every commit.
 - Geocoding hits a shared public service: keep it opt-in, keep the rate limit and caching, never add autocomplete, bulk, or grid querying, and do not run live Nominatim calls in tests (use the mock server).
 - The HTTP OAuth proxy is security-sensitive: keep PKCE S256 mandatory, exact redirect-URI matching, the consent step and its CSRF cookie, single-use codes, hashed token storage, and the rule that a code/token is never redirected to an unvalidated URI. Any change there needs a negative test in `test/http.test.ts`.
 - Any user-supplied string placed in a URL path must be a number or an enum, or be percent-encoded **and** rejected if it is only dots (dot-segment normalization).
+- Skills are instructions the model will follow, so review them as carefully as code. Keep them procedural, link to the OSM wiki instead of copying tag lists, and never build skill text from OSM free text (notes, comments, tags): that would turn untrusted content into instructions. A skill folder name must equal its `name`; `test/skills.test.ts` enforces frontmatter validity, the reviewed skill list, and that every `osm_*` tool a skill mentions exists. Adding a skill means updating that list, the README table and the CHANGELOG. The SDK's skills `attach` is experimental, hence the `~2.4.0` pin.
 - Never commit tokens. Tokens live in `~/.config/openstreetmap-mcp/`.
 - Do not run tests that write to the production OSM API. Live write testing goes through `npm run test:live` against the sandbox only; `test/helpers/live.ts` enforces this and must not be loosened.
 
