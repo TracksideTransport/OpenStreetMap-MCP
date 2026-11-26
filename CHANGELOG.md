@@ -5,13 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-26
+
 ### Added
 - `osm_patch_tags`: add, change, or remove tags on an element without resending its geometry or other tags; no-op when nothing changes, optional `expected_version` guard.
-- `write_changeset_comments` is now a default OAuth scope (needed by `osm_comment_changeset`).
-
-### Fixed
-- Write requests now send `Accept: application/xml`; with JSON, `osm_upload_diff` lost its per-element results (new ids and versions).
-- Clarified that changeset comments are only accepted on closed changesets.
 
 ## [0.1.0] - 2026-11-26
 
@@ -22,6 +19,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Edit tools: create/close changesets, create/update/delete elements, atomic `osmChange` upload, changeset comments.
 - Map notes tools: search, bbox listing, create, comment, close, reopen.
 - `OSM_ENV=dev` switch for the OSM sandbox server.
+- `write_changeset_comments` is now a default OAuth scope (needed by `osm_comment_changeset`).
 
-[Unreleased]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.1.0...HEAD
+### Fixed
+- Write requests now send `Accept: application/xml`; with JSON, `osm_upload_diff` lost its per-element results (new ids and versions).
+- Clarified that changeset comments are only accepted on closed changesets.
+
+[Unreleased]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/releases/tag/v0.1.0

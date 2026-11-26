@@ -7,7 +7,7 @@ import { registerEditTools } from "./tools/edit.js";
 import { registerNoteTools } from "./tools/notes.js";
 import { registerReadTools } from "./tools/read.js";
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.1";
 
 export function createServer(cfg: Config = loadConfig()) {
   const auth = new Auth(cfg);
