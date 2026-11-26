@@ -32,7 +32,7 @@ describe("stdio server", () => {
       send({ jsonrpc: "2.0", method: "notifications/initialized" });
       send({ jsonrpc: "2.0", id: 2, method: "tools/list" });
       const tools = (await waitFor(2)).result.tools.map((t: any) => t.name);
-      for (const n of ["osm_login", "osm_get_element", "osm_get_bbox", "osm_create_changeset", "osm_upload_diff", "osm_create_note"]) expect(tools).toContain(n);
+      for (const n of ["osm_login", "osm_get_element", "osm_get_bbox", "osm_create_changeset", "osm_upload_diff", "osm_patch_tags", "osm_create_note"]) expect(tools).toContain(n);
       // Unauthenticated write must come back as a tool error, not a crash.
       send({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "osm_create_changeset", arguments: { comment: "x" } } });
       const call = (await waitFor(3)).result;
