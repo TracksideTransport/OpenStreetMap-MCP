@@ -11,7 +11,9 @@ An MCP server (stdio) that reads and edits OpenStreetMap data through the [OSM A
 - `src/config.ts` – env-driven config (`OSM_ENV`, `OSM_CLIENT_ID`, ...).
 - `src/auth.ts` – PKCE, loopback listener, token storage/revocation.
 - `src/osm.ts` – HTTP client, XML builders/parsers, error mapping.
-- `src/tools/{auth,read,edit,notes}.ts` – tool definitions; `util.ts` has shared helpers.
+- `src/nominatim.ts` – Nominatim client (opt-in geocoding; enforces 1 req/s, caches, per the Nominatim usage policy).
+- `src/patch.ts` – tag-patch logic behind `osm_patch_tags`.
+- `src/tools/{auth,read,edit,notes,geocode}.ts` – tool definitions; `util.ts` has shared helpers.
 - `test/` – vitest: unit, mock-HTTP client tests, real stdio smoke test.
 
 ## Commands
@@ -30,6 +32,7 @@ Run typecheck and tests before every commit.
 - Never write to stdout (it is the MCP transport); log to stderr only.
 - Write tools must set accurate `annotations` (`WRITE` / `DESTRUCTIVE`) and mention that edits are public.
 - Tool names are prefixed `osm_`. Adding or renaming a tool: update README and CHANGELOG.
+- Geocoding hits a shared public service: keep it opt-in, keep the rate limit and caching, never add autocomplete, bulk, or grid querying, and do not run live Nominatim calls in tests (use the mock server).
 - Never commit tokens. Tokens live in `~/.config/openstreetmap-mcp/`.
 - Do not run tests that write to the production OSM API. Use `OSM_ENV=dev` (sandbox) for any live write testing.
 
