@@ -105,7 +105,8 @@ export function parseDiffResult(xml: string) {
 
 export interface RequestOptions {
   query?: Record<string, string | number | boolean | undefined>;
-  body?: string;
+  body?: string | FormData;
+  /** Ignored for FormData (fetch sets the multipart boundary itself). */
   contentType?: string;
   /** "required" attaches the token and fails if absent; "optional" attaches it when present. */
   auth?: "required" | "optional" | "none";
@@ -126,7 +127,7 @@ export class OsmClient {
       const t = await this.auth.getToken();
       if (t) headers.authorization = `Bearer ${t}`;
     }
-    if (opts.body !== undefined) headers["content-type"] = opts.contentType ?? "text/xml";
+    if (opts.body !== undefined && typeof opts.body === "string") headers["content-type"] = opts.contentType ?? "text/xml";
     const r = await fetch(url, { method, headers, body: opts.body });
     const text = await r.text();
     if (!r.ok) {

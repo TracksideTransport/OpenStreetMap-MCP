@@ -5,6 +5,8 @@ import { OsmClient } from "./osm.js";
 import { registerAuthTools } from "./tools/auth.js";
 import { registerEditTools } from "./tools/edit.js";
 import { registerGeocodeTools } from "./tools/geocode.js";
+import { registerGpxTools } from "./tools/gpx.js";
+import { registerPreferenceTools } from "./tools/prefs.js";
 import { registerNoteTools } from "./tools/notes.js";
 import { registerReadTools } from "./tools/read.js";
 
@@ -28,6 +30,8 @@ export function createServer(cfg: Config = loadConfig()) {
   registerReadTools(server, ctx);
   registerEditTools(server, ctx);
   registerNoteTools(server, ctx);
+  registerGpxTools(server, ctx);
+  registerPreferenceTools(server, ctx);
   if (cfg.enableGeocoding) registerGeocodeTools(server, ctx);
   return server;
 }
