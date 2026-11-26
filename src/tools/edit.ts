@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { buildChangesetXml, buildElementXml, buildOsmChangeXml, parseDiffResult } from "../osm.js";
+import { patchTags } from "../patch.js";
 import { DESTRUCTIVE, WRITE, safe, type Ctx } from "./util.js";
 
 const id = z.number().int().positive();
@@ -98,6 +99,23 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
       const out = await osm.send("PUT", `/${e.type}/${e.id}`, { body: buildElementXml(e, changeset_id) });
       return { type: e.type, id: e.id, version: Number(out.trim()) };
     }),
+  );
+
+  server.registerTool(
+    "osm_patch_tags",
+    {
+      description: `Add, change, or remove tags on one element without resending its geometry or other tags. Fetches the current element, merges your changes, and writes it back in the given changeset. Returns old and new tags and the new version; does nothing (and returns changed:false) if the tags would be identical. Use expected_version to fail if someone edited the element since you read it. ${NOTE}`,
+      inputSchema: z.object({
+        changeset_id: id,
+        type: z.enum(["node", "way", "relation"]),
+        id,
+        set: tags.optional().describe("Tags to add or overwrite"),
+        remove: z.array(z.string().max(255)).optional().describe("Tag keys to delete"),
+        expected_version: z.number().int().positive().optional(),
+      }),
+      annotations: WRITE,
+    },
+    safe(async (a) => patchTags(osm, a)),
   );
 
   server.registerTool(

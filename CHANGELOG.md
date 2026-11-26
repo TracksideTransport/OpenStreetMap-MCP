@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- `osm_patch_tags`: add, change, or remove tags on an element without resending its geometry or other tags; no-op when nothing changes, optional `expected_version` guard.
 - `write_changeset_comments` is now a default OAuth scope (needed by `osm_comment_changeset`).
 
 ### Fixed

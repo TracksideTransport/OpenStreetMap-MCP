@@ -59,12 +59,12 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 
 **Read (no login needed):** `osm_capabilities`, `osm_get_element`, `osm_get_elements`, `osm_get_element_full`, `osm_element_history`, `osm_element_parents`, `osm_get_bbox`, `osm_get_changeset`, `osm_get_changeset_diff`, `osm_search_changesets`, `osm_get_user`
 
-**Edit (login required):** `osm_create_changeset`, `osm_update_changeset_tags`, `osm_close_changeset`, `osm_comment_changeset`, `osm_create_element`, `osm_update_element`, `osm_delete_element`, `osm_upload_diff`
+**Edit (login required):** `osm_create_changeset`, `osm_update_changeset_tags`, `osm_close_changeset`, `osm_comment_changeset`, `osm_create_element`, `osm_update_element`, `osm_patch_tags`, `osm_delete_element`, `osm_upload_diff`
 
 **Map notes:** read — `osm_get_notes_in_bbox`, `osm_search_notes`, `osm_get_note`; write — `osm_create_note`, `osm_comment_note`, `osm_close_note`, `osm_reopen_note`
 
 ### Typical edit flow
-`osm_login` → `osm_create_changeset` → `osm_get_element` (current version) → `osm_update_element` (full replace, so send all tags) → `osm_close_changeset`.
+`osm_login` → `osm_create_changeset` → `osm_get_element` (current version) → `osm_patch_tags` to change a few tags (or `osm_update_element` for a full replace, where you send everything) → `osm_close_changeset`.
 For many related changes use `osm_upload_diff`, which applies creates/modifies/deletes atomically and lets new elements reference each other via negative ids.
 
 ## Development
