@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { Auth, type AuthLike } from "./auth.js";
 import { loadConfig, type Config } from "./config.js";
 import { OsmClient } from "./osm.js";
+import { SERVER_NAME, VERSION } from "./version.js";
 import { registerAuthTools } from "./tools/auth.js";
 import { registerEditTools } from "./tools/edit.js";
 import { registerGeocodeTools } from "./tools/geocode.js";
@@ -10,13 +11,13 @@ import { registerPreferenceTools } from "./tools/prefs.js";
 import { registerNoteTools } from "./tools/notes.js";
 import { registerReadTools } from "./tools/read.js";
 
-export const VERSION = "0.2.0";
+export { VERSION } from "./version.js";
 
 export function createServer(cfg: Config = loadConfig(), auth: AuthLike = new Auth(cfg)) {
   const osm = new OsmClient(cfg, auth);
   const ctx = { cfg, auth, osm };
   const server = new McpServer(
-    { name: "openstreetmap-mcp", version: VERSION },
+    { name: SERVER_NAME, version: VERSION },
     {
       instructions:
         `Read and edit OpenStreetMap via API v0.6 (${cfg.env}: ${cfg.apiBase}). Reads work without login. ` +

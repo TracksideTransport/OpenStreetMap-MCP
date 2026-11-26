@@ -88,6 +88,16 @@ The OSM API has no geocoder, so by default the assistant must supply coordinates
 > [!IMPORTANT]
 > **Usage policy:** this uses the public service at nominatim.openstreetmap.org, which runs on donated servers with very limited capacity. By enabling it you agree to follow the [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/): at most 1 request per second (enforced here, with results cached for 10 minutes), interactive lookups requested by a user only, and **no** autocomplete, bulk or grid queries, or scraping. Results carry OpenStreetMap attribution (ODbL). The server identifies itself via `OSM_USER_AGENT`; set it to something that identifies you. To switch providers without a software update, set `OSM_NOMINATIM_URL`; for heavier use, run your own instance.
 
+### Dense areas and result size
+Tool results are capped at about 60,000 characters and are always complete, valid JSON: when something is too big, whole items are dropped and a `truncated` field says so. A small box in a dense city can still hold thousands of elements (the API returns every node of every way that touches the box), so `osm_get_bbox` can filter and page:
+
+```jsonc
+{ "min_lon": -71.0310, "min_lat": 42.3735, "max_lon": -71.0294, "max_lat": 42.3751,
+  "tag_filters": ["railway=subway_entrance", "highway=elevator"],  // any of these tags
+  "types": ["node"], "inside_bbox_only": true, "compact": true }
+```
+`tagged_only`, `limit` and `offset` are also available; follow `next_offset` until it is `null`. `osm_capabilities` and `osm_whoami` report the running `openstreetmap-mcp` version (also `serverInfo.version` in the MCP handshake and `/healthz` in HTTP mode).
+
 ### Typical edit flow
 `osm_login` → `osm_create_changeset` → `osm_get_element` (current version) → `osm_patch_tags` to change a few tags (or `osm_update_element` for a full replace, where you send everything) → `osm_close_changeset`.
 For many related changes use `osm_upload_diff`, which applies creates/modifies/deletes atomically and lets new elements reference each other via negative ids.

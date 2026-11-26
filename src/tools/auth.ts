@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import { SERVER_NAME, VERSION } from "../version.js";
 import { READ_ONLY, WRITE, safe, type Ctx } from "./util.js";
 
 export function registerAuthTools(server: McpServer, { auth, osm, cfg }: Ctx) {
@@ -46,7 +47,7 @@ export function registerAuthTools(server: McpServer, { auth, osm, cfg }: Ctx) {
       annotations: READ_ONLY,
     },
     safe(async () => {
-      const base = { environment: cfg.env, api: cfg.apiBase };
+      const base = { server: { name: SERVER_NAME, version: VERSION }, environment: cfg.env, api: cfg.apiBase };
       if (!(await auth.getToken())) return { ...base, authenticated: false };
       const details = await osm.getJson("/user/details.json", { auth: "required" });
       let permissions: unknown;

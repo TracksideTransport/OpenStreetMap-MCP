@@ -5,6 +5,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+- Large tool results were cut off at 60,000 characters in the middle of an element, which made them invalid JSON (reported for `osm_get_bbox` in a dense city). Results are now always complete valid JSON: when something is too big, whole array items are dropped and a `truncated` field says how many. (#17)
+
+### Added
+- `osm_get_bbox` can filter and page: `tag_filters`, `types`, `tagged_only`, `inside_bbox_only`, `compact`, `limit`, `offset`. Pages are sized to fit and never split an element; `next_offset` points to the next page. (#17)
+- `osm_capabilities` (`mcp`), `osm_whoami` (`server`) and the HTTP `/healthz` endpoint report the running `openstreetmap-mcp` version. (#18)
+
+### Changed
+- `osm_get_bbox` now returns `{ bbox, total_in_area, total_matching, offset, returned, next_offset, elements }` (default page of 200 elements) instead of the raw API response; the `elements` array is unchanged.
+- The server version is read from `package.json` at runtime instead of a second hand-maintained constant.
+
 ## [0.2.0] - 2026-11-26
 
 ### Added
