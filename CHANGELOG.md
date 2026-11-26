@@ -5,6 +5,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+- The `osm-find-a-place` skill now explains the `osm_get_bbox` filters and paging (`tag_filters`, `types`, `tagged_only`, `inside_bbox_only`, `compact`, `limit`, `offset`) and when to use them in dense areas.
+
 ## [0.2.1] - 2026-11-26
 
 ### Fixed

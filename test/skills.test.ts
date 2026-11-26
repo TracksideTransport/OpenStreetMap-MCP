@@ -81,6 +81,22 @@ describe("skills over the real stdio server", () => {
     }
   });
 
+  it("osm-find-a-place only describes osm_get_bbox options that exist", async () => {
+    const tools = (await s.rpc("tools/list")).result.tools as any[];
+    const params = new Set(Object.keys(tools.find((t) => t.name === "osm_get_bbox").inputSchema.properties));
+    const md = readFileSync(join(SKILLS_DIR, "osm-find-a-place", "SKILL.md"), "utf8");
+    const section = md.slice(md.indexOf("## 3b."), md.indexOf("## 4."));
+    // option names are the backticked words before the first colon of each bullet ("`limit` and `offset`: paging")
+    const mentioned = section
+      .split("\n")
+      .filter((l) => l.startsWith("- `"))
+      .flatMap((l) => [...l.slice(0, l.indexOf(":")).matchAll(/`([a-z_]+)`/g)].map((m) => m[1]));
+    expect(mentioned.length).toBeGreaterThanOrEqual(6);
+    for (const p of mentioned) expect(params.has(p), `skill mentions unknown osm_get_bbox option ${p}`).toBe(true);
+    // and it covers every filtering/paging option the tool offers
+    for (const p of ["tag_filters", "types", "tagged_only", "inside_bbox_only", "compact", "limit", "offset"]) expect(mentioned).toContain(p);
+  });
+
   it("the server instructions carry the untrusted-text rule and point at the skills", async () => {
     const init = await s.rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "0" } });
     const text: string = init.result.instructions;
