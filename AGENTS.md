@@ -14,13 +14,14 @@ An MCP server (stdio) that reads and edits OpenStreetMap data through the [OSM A
 - `src/nominatim.ts` – Nominatim client (opt-in geocoding; enforces 1 req/s, caches, per the Nominatim usage policy).
 - `src/patch.ts` – tag-patch logic behind `osm_patch_tags`.
 - `src/tools/{auth,read,edit,notes,geocode}.ts` – tool definitions; `util.ts` has shared helpers.
-- `test/` – vitest: unit, mock-HTTP client tests, real stdio smoke test.
+- `test/` – vitest: unit, mock-HTTP client tests, real stdio smoke test. `test/helpers/server.ts` spawns the real server over stdio; `test/live/` holds the opt-in sandbox tests (separate `vitest.live.config.ts`, excluded from `npm test` and CI).
 
 ## Commands
 ```bash
 npm run typecheck   # tsc --noEmit
 npm test            # vitest run
 npm run build       # emits dist/
+npm run test:live   # opt-in: real writes against the OSM SANDBOX (needs a dev token; skipped otherwise)
 npm run dev         # run server from source over stdio
 ```
 Run typecheck and tests before every commit.
@@ -34,7 +35,7 @@ Run typecheck and tests before every commit.
 - Tool names are prefixed `osm_`. Adding or renaming a tool: update README and CHANGELOG.
 - Geocoding hits a shared public service: keep it opt-in, keep the rate limit and caching, never add autocomplete, bulk, or grid querying, and do not run live Nominatim calls in tests (use the mock server).
 - Never commit tokens. Tokens live in `~/.config/openstreetmap-mcp/`.
-- Do not run tests that write to the production OSM API. Use `OSM_ENV=dev` (sandbox) for any live write testing.
+- Do not run tests that write to the production OSM API. Live write testing goes through `npm run test:live` against the sandbox only; `test/helpers/live.ts` enforces this and must not be loosened.
 
 ## Workflow
 - **Track work in GitHub issues.** Every feature, bugfix, or task starts as an issue (use the templates). Plan in the issue body; link related issues (sub-issue, blocked-by, relates-to) only when the relationship is real.
