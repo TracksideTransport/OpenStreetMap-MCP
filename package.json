@@ -1,6 +1,6 @@
 {
   "name": "openstreetmap-mcp",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "MCP server to read and edit OpenStreetMap data via the OSM API v0.6, with OAuth 2.0 authentication",
   "type": "module",
   "bin": {
