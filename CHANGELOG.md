@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [0.1.1] - 2026-11-26
 
 ### Added
+- Opt-in place search: `osm_geocode` and `osm_reverse_geocode` via Nominatim (`OSM_ENABLE_GEOCODING=true`, `OSM_NOMINATIM_URL`), with a 1 request/second limit, caching, an identifying User-Agent, and attribution in results.
 - `osm_patch_tags`: add, change, or remove tags on an element without resending its geometry or other tags; no-op when nothing changes, optional `expected_version` guard.
 
 ## [0.1.0] - 2026-11-26

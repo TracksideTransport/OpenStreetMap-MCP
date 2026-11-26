@@ -50,6 +50,8 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 | `OSM_SCOPES` | `read_prefs write_api write_changeset_comments write_notes` | Space/comma separated OAuth scopes |
 | `OSM_REDIRECT_PORT` | `8787` | Loopback port; must match the registered redirect URI |
 | `OSM_API_BASE` / `OSM_WEB_BASE` | per env | Override hosts |
+| `OSM_ENABLE_GEOCODING` | off | Set `true` to enable `osm_geocode` / `osm_reverse_geocode` (see [Place search](#place-search-nominatim-opt-in)) |
+| `OSM_NOMINATIM_URL` | `https://nominatim.openstreetmap.org` | Point at your own Nominatim instance or a provider |
 | `OSM_USER_AGENT` | `openstreetmap-mcp/…` | Sent on every request (OSM requires one) |
 | `OSM_CONFIG_DIR` | `~/.config/openstreetmap-mcp` | Token storage |
 
@@ -62,6 +64,13 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 **Edit (login required):** `osm_create_changeset`, `osm_update_changeset_tags`, `osm_close_changeset`, `osm_comment_changeset`, `osm_create_element`, `osm_update_element`, `osm_patch_tags`, `osm_delete_element`, `osm_upload_diff`
 
 **Map notes:** read — `osm_get_notes_in_bbox`, `osm_search_notes`, `osm_get_note`; write — `osm_create_note`, `osm_comment_note`, `osm_close_note`, `osm_reopen_note`
+
+**Place search (opt-in, Nominatim):** `osm_geocode`, `osm_reverse_geocode`, see below.
+
+### Place search (Nominatim, opt-in)
+The OSM API has no geocoder, so by default the assistant must supply coordinates. Set `OSM_ENABLE_GEOCODING=true` to add `osm_geocode` (place name or address to coordinates, OSM element id and a bounding box ready for `osm_get_bbox`) and `osm_reverse_geocode`.
+
+> **Usage policy:** this uses the public service at nominatim.openstreetmap.org, which runs on donated servers with very limited capacity. By enabling it you agree to follow the [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/): at most 1 request per second (enforced here, with results cached for 10 minutes), interactive lookups requested by a user only, and **no** autocomplete, bulk or grid queries, or scraping. Results carry OpenStreetMap attribution (ODbL). The server identifies itself via `OSM_USER_AGENT`; set it to something that identifies you. To switch providers without a software update, set `OSM_NOMINATIM_URL`; for heavier use, run your own instance.
 
 ### Typical edit flow
 `osm_login` → `osm_create_changeset` → `osm_get_element` (current version) → `osm_patch_tags` to change a few tags (or `osm_update_element` for a full replace, where you send everything) → `osm_close_changeset`.
