@@ -74,8 +74,10 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 
 **Preferences:** `osm_get_preferences`, `osm_set_preference`, `osm_delete_preference`
 
+> [!WARNING]
 > **GPS trace privacy:** OSM's API only accepts `trackable` (points shared anonymously, ordered, with timestamps) or `identifiable` (also listed publicly under your name) for uploads and changes; the legacy `private`/`public` values can no longer be set. Both publish the track points, so `osm_upload_gpx` has no default: the assistant must ask you which one you want.
 
+> [!NOTE]
 > The GPX and preference tools that act on your account need extra OAuth scopes that are **not** requested by default (so existing app registrations keep working): `read_gpx`, `write_gpx` and `write_prefs` (`read_prefs` is already included). Tick them on your OSM app, then add them via `OSM_SCOPES`, e.g. `OSM_SCOPES="read_prefs write_prefs write_api write_changeset_comments write_notes read_gpx write_gpx"`, and log in again. Without them those tools fail with a clear 403.
 
 **Place search (opt-in, Nominatim):** `osm_geocode`, `osm_reverse_geocode`, see below.
@@ -83,6 +85,7 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 ### Place search (Nominatim, opt-in)
 The OSM API has no geocoder, so by default the assistant must supply coordinates. Set `OSM_ENABLE_GEOCODING=true` to add `osm_geocode` (place name or address to coordinates, OSM element id and a bounding box ready for `osm_get_bbox`) and `osm_reverse_geocode`.
 
+> [!IMPORTANT]
 > **Usage policy:** this uses the public service at nominatim.openstreetmap.org, which runs on donated servers with very limited capacity. By enabling it you agree to follow the [Nominatim Usage Policy](https://operations.osmfoundation.org/policies/nominatim/): at most 1 request per second (enforced here, with results cached for 10 minutes), interactive lookups requested by a user only, and **no** autocomplete, bulk or grid queries, or scraping. Results carry OpenStreetMap attribution (ODbL). The server identifies itself via `OSM_USER_AGENT`; set it to something that identifies you. To switch providers without a software update, set `OSM_NOMINATIM_URL`; for heavier use, run your own instance.
 
 ### Typical edit flow
