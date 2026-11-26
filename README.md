@@ -50,6 +50,10 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 | `OSM_SCOPES` | `read_prefs write_api write_changeset_comments write_notes` | Space/comma separated OAuth scopes |
 | `OSM_REDIRECT_PORT` | `8787` | Loopback port; must match the registered redirect URI |
 | `OSM_API_BASE` / `OSM_WEB_BASE` | per env | Override hosts |
+| `OSM_HTTP_HOST` / `OSM_HTTP_PORT` | `127.0.0.1` / `3000` | Bind address for `--http` |
+| `OSM_PUBLIC_URL` | `http://127.0.0.1:<port>` | Externally visible base URL for `--http` (OAuth issuer; **must be https** unless localhost) |
+| `OSM_HTTP_ALLOWED_HOSTS` | – | Extra Host header values to accept (comma separated); the public URL's host is always allowed |
+| `OSM_MCP_TOKEN_TTL` | `86400` | Lifetime in seconds of access tokens issued by `--http` |
 | `OSM_ENABLE_GEOCODING` | off | Set `true` to enable `osm_geocode` / `osm_reverse_geocode` (see [Place search](#place-search-nominatim-opt-in)) |
 | `OSM_NOMINATIM_URL` | `https://nominatim.openstreetmap.org` | Point at your own Nominatim instance or a provider |
 | `OSM_USER_AGENT` | `openstreetmap-mcp/…` | Sent on every request (OSM requires one) |
@@ -65,6 +69,14 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 
 **Map notes:** read — `osm_get_notes_in_bbox`, `osm_search_notes`, `osm_get_note`; write — `osm_create_note`, `osm_comment_note`, `osm_close_note`, `osm_reopen_note`
 
+**GPS traces:** read — `osm_get_trackpoints` (public points in a bbox, summarized), `osm_get_gpx_details`, `osm_get_gpx_data`, `osm_list_my_gpx_files`; write — `osm_upload_gpx`, `osm_update_gpx`, `osm_delete_gpx`
+
+**Preferences:** `osm_get_preferences`, `osm_set_preference`, `osm_delete_preference`
+
+> **GPS trace privacy:** OSM's API only accepts `trackable` (points shared anonymously, ordered, with timestamps) or `identifiable` (also listed publicly under your name) for uploads and changes; the legacy `private`/`public` values can no longer be set. Both publish the track points, so `osm_upload_gpx` has no default: the assistant must ask you which one you want.
+
+> The GPX and preference tools that act on your account need extra OAuth scopes that are **not** requested by default (so existing app registrations keep working): `read_gpx`, `write_gpx` and `write_prefs` (`read_prefs` is already included). Tick them on your OSM app, then add them via `OSM_SCOPES`, e.g. `OSM_SCOPES="read_prefs write_prefs write_api write_changeset_comments write_notes read_gpx write_gpx"`, and log in again. Without them those tools fail with a clear 403.
+
 **Place search (opt-in, Nominatim):** `osm_geocode`, `osm_reverse_geocode`, see below.
 
 ### Place search (Nominatim, opt-in)
@@ -75,6 +87,20 @@ The OSM API has no geocoder, so by default the assistant must supply coordinates
 ### Typical edit flow
 `osm_login` → `osm_create_changeset` → `osm_get_element` (current version) → `osm_patch_tags` to change a few tags (or `osm_update_element` for a full replace, where you send everything) → `osm_close_changeset`.
 For many related changes use `osm_upload_diff`, which applies creates/modifies/deletes atomically and lets new elements reference each other via negative ids.
+
+## Remote use over HTTP
+
+By default the server speaks stdio to a local MCP client. To run it as a shared or remote service, use the Streamable HTTP transport:
+
+```bash
+OSM_CLIENT_ID=<id> OSM_PUBLIC_URL=https://osm-mcp.example.com openstreetmap-mcp --http --port 3000
+```
+
+- The MCP endpoint is `<OSM_PUBLIC_URL>/mcp`. Put a TLS-terminating proxy in front; plain http is only accepted for localhost.
+- Register an OSM OAuth 2 app whose redirect URI is `<OSM_PUBLIC_URL>/oauth/callback` (on the sandbox for testing). It may be confidential: set `OSM_CLIENT_SECRET`.
+- MCP clients sign in by themselves using standard MCP authorization (RFC 9728 discovery, RFC 7591 dynamic registration, PKCE). There is no `osm_login` tool in this mode: the first connection opens a consent page on your server, then OpenStreetMap's login, and the client ends up with a token for **this server**.
+- **Why a proxy:** OSM cannot be an MCP authorization server (no dynamic client registration, tokens are not audience-bound), so this server issues its own opaque, expiring access tokens (`OSM_MCP_TOKEN_TTL`) and keeps each user's OSM token server-side. Every request acts only as the user whose token it carries, so users are isolated from each other; `osm_logout` revokes the OSM token and ends the session.
+- **Security notes:** PKCE (S256) is mandatory; redirect URIs must be https, loopback http, or an app custom scheme and are matched exactly; every client gets a consent page (with a CSRF cookie) before anything is sent to OSM; authorization codes are single use; Host/Origin headers are validated. State is **in memory**: a restart signs everyone out, and it is a single-instance design. There is no rate limiting built in, so add it at your proxy if the server is public.
 
 ## Development
 

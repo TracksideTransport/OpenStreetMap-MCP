@@ -12,10 +12,12 @@ const run = describe.skipIf(!hasSandboxToken());
 const stamp = new Date().toISOString();
 const tracked: { type: "node" | "way" | "relation"; id: number }[] = [];
 let s: TestServer;
+let granted: string[] = [];
 
 run("OSM sandbox (live)", () => {
   beforeAll(async () => {
     s = await startServer(liveEnv());
+    granted = (await s.call("osm_whoami")).permissions ?? [];
   });
 
   afterAll(async () => {
@@ -164,4 +166,62 @@ run("OSM sandbox (live)", () => {
     }
     expect((await s.call("osm_get_note", { id })).properties.status).toBe("closed");
   });
+  it("runs a preferences lifecycle: set, get one, get all, delete", async (ctx) => {
+    if (!granted.includes("allow_write_prefs") || !granted.includes("allow_read_prefs")) return ctx.skip();
+    const key = `openstreetmap-mcp-live-${Date.now()}`;
+    try {
+      expect(await s.call("osm_set_preference", { key, value: "hello" })).toEqual({ key, value: "hello" });
+      expect(await s.call("osm_get_preferences", { key })).toEqual({ key, value: "hello" });
+      expect((await s.call("osm_get_preferences")).preferences[key]).toBe("hello");
+      await s.call("osm_set_preference", { key, value: "changed" });
+      expect((await s.call("osm_get_preferences", { key })).value).toBe("changed");
+      expect(await s.call("osm_delete_preference", { key })).toEqual({ deleted: key });
+      expect((await s.raw("osm_get_preferences", { key })).isError).toBe(true);
+      // dot-only keys never reach the API
+      expect((await s.raw("osm_set_preference", { key: "..", value: "x" })).isError).toBe(true);
+    } finally {
+      await s.call("osm_delete_preference", { key }).catch(() => {});
+    }
+  });
+
+  it("runs a GPX lifecycle: upload (trackable), list, details, update, delete", async (ctx) => {
+    if (!granted.includes("allow_write_gpx") || !granted.includes("allow_read_gpx")) return ctx.skip();
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="openstreetmap-mcp live test" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>live test</name><trkseg>${[0, 1, 2]
+      .map((i) => `<trkpt lat="${(0.01 + i * 0.0001).toFixed(4)}" lon="${(0.01 + i * 0.0001).toFixed(4)}"><ele>1</ele><time>2026-01-01T00:00:0${i}Z</time></trkpt>`)
+      .join("")}</trkseg></trk></gpx>`;
+    let id: number | undefined;
+    try {
+      const up = await s.call("osm_upload_gpx", { gpx, description: `openstreetmap-mcp live test ${stamp}`, tags: ["live-test"], filename: "live-test.gpx", visibility: "trackable" });
+      id = up.gpx_id;
+      expect(up).toMatchObject({ visibility: "trackable" });
+      expect(id).toBeGreaterThan(0);
+
+      const mine = await s.call("osm_list_my_gpx_files");
+      expect(mine.traces.map((t: any) => t.id)).toContain(id);
+
+      const details = await s.call("osm_get_gpx_details", { id });
+      const f = details.trace;
+      expect(f.visibility).toBe("trackable");
+      expect(String(f.description)).toContain("live test");
+
+      const upd = await s.call("osm_update_gpx", { id, description: `updated ${stamp}`, tags: ["live-test", "updated"] });
+      expect(upd).toMatchObject({ id, visibility: "trackable", tags: ["live-test", "updated"] });
+      const after = (await s.call("osm_get_gpx_details", { id })).trace;
+      const f2 = after;
+      expect(String(f2.description)).toContain("updated");
+      expect(f2.tags).toEqual(["live-test", "updated"]);
+
+      // points are processed asynchronously; only check them if the sandbox already did
+      if (f2.pending === false || f2.pending === "false") {
+        const data = await s.call("osm_get_gpx_data", { id });
+        expect(data.total_points).toBe(3);
+      }
+    } finally {
+      if (id !== undefined) {
+        expect(await s.call("osm_delete_gpx", { id })).toEqual({ deleted: id });
+        expect((await s.raw("osm_get_gpx_details", { id })).isError).toBe(true);
+      }
+    }
+  });
+
 });

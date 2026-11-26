@@ -22,11 +22,11 @@ export function redirectUri(cfg: Config) {
   return `http://127.0.0.1:${cfg.redirectPort}/callback`;
 }
 
-export function buildAuthorizeUrl(cfg: Config, state: string, challenge: string) {
+export function buildAuthorizeUrl(cfg: Config, state: string, challenge: string, redirect: string = redirectUri(cfg)) {
   const u = new URL(`${cfg.webBase}/oauth2/authorize`);
   u.searchParams.set("response_type", "code");
   u.searchParams.set("client_id", cfg.clientId ?? "");
-  u.searchParams.set("redirect_uri", redirectUri(cfg));
+  u.searchParams.set("redirect_uri", redirect);
   u.searchParams.set("scope", cfg.scopes.join(" "));
   u.searchParams.set("state", state);
   u.searchParams.set("code_challenge", challenge);
@@ -34,8 +34,52 @@ export function buildAuthorizeUrl(cfg: Config, state: string, challenge: string)
   return u.toString();
 }
 
+export interface OsmTokenResponse {
+  access_token: string;
+  scope?: string;
+  created_at?: number;
+}
+
+/** Exchange an OSM authorization code (PKCE) for an access token. */
+export async function exchangeOsmCode(cfg: Config, code: string, verifier: string, redirect: string): Promise<OsmTokenResponse> {
+  const body = new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: redirect, client_id: cfg.clientId ?? "", code_verifier: verifier });
+  if (cfg.clientSecret) body.set("client_secret", cfg.clientSecret);
+  const r = await fetch(`${cfg.webBase}/oauth2/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": cfg.userAgent },
+    body,
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0, 300)}`);
+  const j = JSON.parse(text) as OsmTokenResponse;
+  if (!j.access_token) throw new Error("OSM token response had no access_token");
+  return { access_token: j.access_token, scope: j.scope, created_at: j.created_at };
+}
+
+/** Revoke an OSM token (best effort). */
+export async function revokeOsmToken(cfg: Config, token: string): Promise<void> {
+  if (!cfg.clientId) return;
+  const body = new URLSearchParams({ token, client_id: cfg.clientId });
+  if (cfg.clientSecret) body.set("client_secret", cfg.clientSecret);
+  await fetch(`${cfg.webBase}/oauth2/revoke`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": cfg.userAgent },
+    body,
+  }).catch(() => {});
+}
+
+/** What the tools need from authentication; implemented by the stdio `Auth` and the per-request HTTP auth. */
+export interface AuthLike {
+  getToken(): Promise<string | undefined>;
+  requireToken(): Promise<string>;
+  scopes(): string | undefined;
+  logout(): Promise<void>;
+  /** Interactive loopback login; only available over stdio. */
+  startLogin?(timeoutMs?: number): Promise<{ url: string; done: Promise<{ scope?: string }> }>;
+}
+
 /** Holds the OAuth 2.0 access token (OSM tokens do not expire until revoked). */
-export class Auth {
+export class Auth implements AuthLike {
   private token: StoredToken | undefined;
   private loaded = false;
 
@@ -135,22 +179,7 @@ export class Auth {
   }
 
   private async exchangeCode(code: string, verifier: string): Promise<StoredToken> {
-    const body = new URLSearchParams({
-      grant_type: "authorization_code",
-      code,
-      redirect_uri: redirectUri(this.cfg),
-      client_id: this.cfg.clientId ?? "",
-      code_verifier: verifier,
-    });
-    if (this.cfg.clientSecret) body.set("client_secret", this.cfg.clientSecret);
-    const r = await fetch(`${this.cfg.webBase}/oauth2/token`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": this.cfg.userAgent },
-      body,
-    });
-    const text = await r.text();
-    if (!r.ok) throw new Error(`HTTP ${r.status}: ${text.slice(0, 300)}`);
-    const j = JSON.parse(text) as { access_token: string; scope?: string; created_at?: number };
+    const j = await exchangeOsmCode(this.cfg, code, verifier, redirectUri(this.cfg));
     const tok: StoredToken = { access_token: j.access_token, scope: j.scope, created_at: j.created_at };
     await this.save(tok);
     return tok;
@@ -158,15 +187,7 @@ export class Auth {
 
   async logout(): Promise<void> {
     const t = this.token?.access_token;
-    if (t && this.cfg.clientId) {
-      const body = new URLSearchParams({ token: t, client_id: this.cfg.clientId });
-      if (this.cfg.clientSecret) body.set("client_secret", this.cfg.clientSecret);
-      await fetch(`${this.cfg.webBase}/oauth2/revoke`, {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded", "user-agent": this.cfg.userAgent },
-        body,
-      }).catch(() => {});
-    }
+    if (t) await revokeOsmToken(this.cfg, t);
     this.token = undefined;
     this.loaded = true;
     await rm(this.cfg.tokenFile, { force: true });

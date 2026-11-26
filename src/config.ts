@@ -21,6 +21,19 @@ export interface Config {
   /** Place-name search via Nominatim is opt-in; see the Nominatim usage policy. */
   enableGeocoding: boolean;
   nominatimBase: string;
+  /** Streamable HTTP transport settings (only used with --http). */
+  http: HttpConfig;
+}
+
+export interface HttpConfig {
+  host: string;
+  port: number;
+  /** Externally visible base URL of this server: the OAuth issuer and the base of /mcp. No trailing slash. */
+  publicUrl: string;
+  /** Lifetime of access tokens this server issues, in seconds. */
+  tokenTtlSeconds: number;
+  /** Extra Host header values to accept (comma separated OSM_HTTP_ALLOWED_HOSTS); the public URL's host is always allowed. */
+  allowedHosts: string[];
 }
 
 export const DEFAULT_SCOPES = ["read_prefs", "write_api", "write_changeset_comments", "write_notes"];
@@ -31,6 +44,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const apiBase = (env.OSM_API_BASE ?? (dev ? "https://master.apis.dev.openstreetmap.org" : "https://api.openstreetmap.org")).replace(/\/+$/, "");
   const webBase = (env.OSM_WEB_BASE ?? (dev ? "https://master.apis.dev.openstreetmap.org" : "https://www.openstreetmap.org")).replace(/\/+$/, "");
   const configDir = env.OSM_CONFIG_DIR ?? join(env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "openstreetmap-mcp");
+  const httpHost = env.OSM_HTTP_HOST ?? "127.0.0.1";
+  const httpPort = Number(env.OSM_HTTP_PORT ?? 3000);
+  const publicUrl = (env.OSM_PUBLIC_URL ?? `http://${httpHost === "0.0.0.0" || httpHost === "::" ? "127.0.0.1" : httpHost}:${httpPort}`).replace(/\/+$/, "");
   return {
     env: osmEnv,
     apiBase,
@@ -44,5 +60,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     tokenFile: join(configDir, `tokens-${osmEnv}.json`),
     enableGeocoding: ["1", "true", "yes"].includes((env.OSM_ENABLE_GEOCODING ?? "").toLowerCase()),
     nominatimBase: (env.OSM_NOMINATIM_URL ?? "https://nominatim.openstreetmap.org").replace(/\/+$/, ""),
+    http: {
+      host: httpHost,
+      port: httpPort,
+      publicUrl,
+      tokenTtlSeconds: Number(env.OSM_MCP_TOKEN_TTL ?? 86_400),
+      allowedHosts: (env.OSM_HTTP_ALLOWED_HOSTS ?? "").split(",").map((h) => h.trim()).filter(Boolean),
+    },
   };
 }

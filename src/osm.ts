@@ -1,5 +1,5 @@
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
-import type { Auth } from "./auth.js";
+import type { AuthLike } from "./auth.js";
 import type { Config } from "./config.js";
 
 export type ElementType = "node" | "way" | "relation";
@@ -105,14 +105,15 @@ export function parseDiffResult(xml: string) {
 
 export interface RequestOptions {
   query?: Record<string, string | number | boolean | undefined>;
-  body?: string;
+  body?: string | FormData;
+  /** Ignored for FormData (fetch sets the multipart boundary itself). */
   contentType?: string;
   /** "required" attaches the token and fails if absent; "optional" attaches it when present. */
   auth?: "required" | "optional" | "none";
 }
 
 export class OsmClient {
-  constructor(private cfg: Config, private auth: Auth) {}
+  constructor(private cfg: Config, private auth: AuthLike) {}
 
   private async raw(method: string, path: string, opts: RequestOptions = {}): Promise<{ status: number; text: string }> {
     const url = new URL(`${this.cfg.apiBase}/api/0.6${path}`);
@@ -126,7 +127,7 @@ export class OsmClient {
       const t = await this.auth.getToken();
       if (t) headers.authorization = `Bearer ${t}`;
     }
-    if (opts.body !== undefined) headers["content-type"] = opts.contentType ?? "text/xml";
+    if (opts.body !== undefined && typeof opts.body === "string") headers["content-type"] = opts.contentType ?? "text/xml";
     const r = await fetch(url, { method, headers, body: opts.body });
     const text = await r.text();
     if (!r.ok) {

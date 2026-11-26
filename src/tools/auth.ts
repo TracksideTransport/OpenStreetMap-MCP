@@ -3,27 +3,31 @@ import * as z from "zod/v4";
 import { READ_ONLY, WRITE, safe, type Ctx } from "./util.js";
 
 export function registerAuthTools(server: McpServer, { auth, osm, cfg }: Ctx) {
-  let pending: Promise<unknown> | undefined;
+  // Interactive loopback login exists only over stdio; over HTTP the MCP OAuth flow signs the user in.
+  if (auth.startLogin) {
+    let pending: Promise<unknown> | undefined;
 
-  server.registerTool(
-    "osm_login",
-    {
-      description:
-        "Start OAuth 2.0 login (authorization code + PKCE). Returns a URL the user must open in a browser and approve; the token is then captured automatically by a temporary local listener (5 minute window). Afterwards call osm_whoami to confirm. Needed before any editing or note-writing tool.",
-      inputSchema: z.object({}),
-      annotations: WRITE,
-    },
-    safe(async () => {
-      if (pending) throw new Error("A login is already in progress. Finish it in the browser, or wait for it to time out.");
-      const { url, done } = await auth.startLogin();
-      pending = done.then(() => undefined, () => undefined).finally(() => (pending = undefined));
-      return {
-        authorize_url: url,
-        next: "Ask the user to open authorize_url and approve access, then call osm_whoami to confirm.",
-        scopes: cfg.scopes,
-      };
-    }),
-  );
+    server.registerTool(
+      "osm_login",
+      {
+        description:
+          "Start OAuth 2.0 login (authorization code + PKCE). Returns a URL the user must open in a browser and approve; the token is then captured automatically by a temporary local listener (5 minute window). Afterwards call osm_whoami to confirm. Needed before any editing or note-writing tool.",
+        inputSchema: z.object({}),
+        annotations: WRITE,
+      },
+      safe(async () => {
+        if (pending) throw new Error("A login is already in progress. Finish it in the browser, or wait for it to time out.");
+        if (!auth.startLogin) throw new Error("Interactive login is not available in this mode.");
+        const { url, done } = await auth.startLogin();
+        pending = done.then(() => undefined, () => undefined).finally(() => (pending = undefined));
+        return {
+          authorize_url: url,
+          next: "Ask the user to open authorize_url and approve access, then call osm_whoami to confirm.",
+          scopes: cfg.scopes,
+        };
+      }),
+    );
+  }
 
   server.registerTool(
     "osm_logout",
