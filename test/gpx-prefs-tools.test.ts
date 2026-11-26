@@ -109,6 +109,19 @@ describe("preference tools", () => {
     expect(await s.call("osm_delete_preference", { key: "some key" })).toEqual({ deleted: "some key" });
   });
 
+  it("rejects dot-only keys before any request (URL dot-segment normalization)", async () => {
+    for (const tool of ["osm_get_preferences", "osm_set_preference", "osm_delete_preference"]) {
+      for (const k of ["..", ".", "..."]) {
+        const r = await s.raw(tool, { key: k, value: "x" });
+        expect(r.isError).toBe(true);
+      }
+    }
+    expect(seen).toHaveLength(0);
+    // keys with slashes or dots inside stay a single encoded path segment
+    await s.raw("osm_set_preference", { key: "../x", value: "v" });
+    expect(seen[0].url).toBe("/api/0.6/user/preferences/..%2Fx");
+  });
+
   it("surfaces a missing-scope 403 as a readable error", async () => {
     const r = await s.raw("osm_get_preferences", { key: "other" });
     expect(r.isError).toBe(true);

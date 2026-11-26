@@ -1,11 +1,11 @@
-import type { Auth } from "../auth.js";
+import type { AuthLike } from "../auth.js";
 import type { Config } from "../config.js";
 import type { OsmClient } from "../osm.js";
 import { OsmError } from "../osm.js";
 
 export interface Ctx {
   cfg: Config;
-  auth: Auth;
+  auth: AuthLike;
   osm: OsmClient;
 }
 

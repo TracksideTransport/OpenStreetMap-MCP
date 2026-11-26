@@ -2,7 +2,13 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { DESTRUCTIVE, READ_ONLY, WRITE, safe, type Ctx } from "./util.js";
 
-const key = z.string().min(1).max(255);
+// A key made only of dots ("." or "..") would be collapsed by URL dot-segment normalization
+// (/user/preferences/.. -> /user/) and redirect the request to a different endpoint, so refuse it.
+const key = z
+  .string()
+  .min(1)
+  .max(255)
+  .refine((k) => !/^\.+$/.test(k), { message: "Key must not consist only of dots" });
 const READ = "Needs the read_prefs OAuth scope.";
 const WRITE_SCOPE = "Needs the write_prefs OAuth scope (add it to OSM_SCOPES and the OSM app registration).";
 

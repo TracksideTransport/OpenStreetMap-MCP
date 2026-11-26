@@ -1,5 +1,5 @@
 import { XMLBuilder, XMLParser } from "fast-xml-parser";
-import type { Auth } from "./auth.js";
+import type { AuthLike } from "./auth.js";
 import type { Config } from "./config.js";
 
 export type ElementType = "node" | "way" | "relation";
@@ -113,7 +113,7 @@ export interface RequestOptions {
 }
 
 export class OsmClient {
-  constructor(private cfg: Config, private auth: Auth) {}
+  constructor(private cfg: Config, private auth: AuthLike) {}
 
   private async raw(method: string, path: string, opts: RequestOptions = {}): Promise<{ status: number; text: string }> {
     const url = new URL(`${this.cfg.apiBase}/api/0.6${path}`);
