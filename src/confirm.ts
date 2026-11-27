@@ -55,3 +55,34 @@ export async function confirmWrite(ctx: ServerContext, cfg: Pick<Config, "confir
 }
 
 export const NOT_CONFIRMED = { cancelled: true, message: "The user did not confirm, so nothing was changed. Ask them what they want instead." } as const;
+
+/**
+ * Public text posted under the user's account (changeset comments, notes). The user sees the exact words in an editable
+ * field and decides what is sent, so what reaches OSM is theirs, not a model's composition (the OSM moderators remove
+ * chatbot-composed posts). Returns the text to send (possibly edited), or undefined if they did not confirm. When the
+ * client cannot ask, the model's text is returned unchanged, as before elicitation existed.
+ */
+export async function reviewPublicText(
+  ctx: ServerContext,
+  cfg: Pick<Config, "confirmWrites" | "env">,
+  what: string,
+  text: string | undefined,
+  opts: { required: boolean },
+): Promise<string | undefined | null> {
+  const where = cfg.env === "dev" ? "the OSM sandbox" : "the real OpenStreetMap";
+  const r = await askUser(
+    ctx,
+    cfg,
+    `${what} on ${where}. It is public and posted under your account. Review the text and change it into your own words if you like: text composed by a chatbot can be removed by OSM moderators.`,
+    {
+      text: { type: "string", title: opts.required ? "Text to post" : "Text to post (optional)", default: text ?? "" },
+      confirm: { type: "boolean", title: "Post it", default: false },
+    },
+    ["confirm"],
+  );
+  if (r.status === "skipped") return text;
+  if (r.status !== "confirmed" || r.values.confirm !== true) return null;
+  const edited = typeof r.values.text === "string" ? r.values.text.trim() : (text ?? "");
+  if (opts.required && !edited) return null;
+  return edited || undefined;
+}

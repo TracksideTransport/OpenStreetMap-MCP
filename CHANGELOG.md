@@ -6,6 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- Changeset comments and map notes (`osm_comment_changeset`, `osm_create_note`, `osm_comment_note`, `osm_close_note`, `osm_reopen_note`) now show you the exact text in an editable field and are only sent if you confirm; what you submit is what is posted. This keeps public text in your own words (the OSM moderators remove chatbot-composed posts). Clients without elicitation and `OSM_CONFIRM_WRITES=off` keep the old behavior. The server instructions and tool descriptions tell the model to give plain facts, not finished prose, and not to answer objecting mappers on your behalf. (#30)
 - Bulk-edit guard: per session, the server counts changesets opened and elements written. Past 50 elements or a second changeset it asks you to confirm, shows the counts and a link to the OSM automated edits code of conduct, and takes an optional proposal link; after a yes it asks again when the element count has doubled or after ten more changesets. On clients that cannot ask it refuses and names `OSM_GUARD_ELEMENTS` / `OSM_GUARD_CHANGESETS`. It is off on the dev sandbox and with `OSM_CONFIRM_WRITES=off`. Counts are kept per session over stdio and per caller (keyed by a hash of their OSM token) over `--http`; parallel tool calls are counted together, and a write that fails is not counted. Reconnecting over HTTP starts a new count: the guard is friction, not a security boundary. (#27)
 
 ## [0.3.0] - 2026-11-27
