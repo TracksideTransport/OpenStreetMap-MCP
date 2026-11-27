@@ -5,11 +5,14 @@ import { toNodeHandler } from "@modelcontextprotocol/node";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import type { AuthLike } from "../auth.js";
 import type { Config } from "../config.js";
+import { createHash } from "node:crypto";
+import { WriteGuard } from "../guard.js";
 import { createServer } from "../server.js";
 import { VERSION } from "../version.js";
 import type { SkillsCatalog } from "../skills.js";
 import { consentPage, errorPage } from "./page.js";
 import { OAuthHttpError, OAuthProxy } from "./proxy.js";
+import { TtlMap } from "./store.js";
 
 const COOKIE = "mcp_txn";
 const LOCAL = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
@@ -113,10 +116,17 @@ export function createHttpApp(cfg: Config, proxy = new OAuthProxy(cfg), skills?:
     resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(new URL(proxy.resource)),
     expectedResource: new URL(proxy.resource),
   });
+  // The server is rebuilt for every request, so the bulk-edit guard's counts live here, keyed by a hash of the caller's
+  // OSM token. Reconnecting (a new OSM authorization) starts a new count: the guard is friction, not a security boundary.
+  const guards = new TtlMap<WriteGuard>(cfg.http.tokenTtlSeconds * 1000, 5_000);
   const node = toNodeHandler(
     createMcpHandler((ctx) => {
       if (!ctx.authInfo) throw new Error("unauthenticated");
-      return createServer(cfg, new RequestAuth(proxy, ctx.authInfo.token), skills);
+      const osmToken = proxy.session(ctx.authInfo.token)?.osmToken ?? ctx.authInfo.token;
+      const key = createHash("sha256").update(osmToken).digest("hex");
+      let guard = guards.get(key);
+      if (!guard) guards.set(key, (guard = new WriteGuard(cfg)));
+      return createServer(cfg, new RequestAuth(proxy, ctx.authInfo.token), skills, guard);
     }),
   );
   app.all("/mcp", auth, (req, res) => void node(req, res, req.body));

@@ -1,5 +1,6 @@
 import type { ServerContext } from "@modelcontextprotocol/server";
 import type { AuthLike } from "../auth.js";
+import type { WriteGuard } from "../guard.js";
 import type { Config } from "../config.js";
 import type { OsmClient } from "../osm.js";
 import { OsmError } from "../osm.js";
@@ -8,6 +9,7 @@ export interface Ctx {
   cfg: Config;
   auth: AuthLike;
   osm: OsmClient;
+  guard: WriteGuard;
 }
 
 export const READ_ONLY = { readOnlyHint: true, openWorldHint: true } as const;

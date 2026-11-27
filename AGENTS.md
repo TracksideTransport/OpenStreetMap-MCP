@@ -12,6 +12,8 @@ An MCP server (stdio) that reads and edits OpenStreetMap data through the [OSM A
 - `src/auth.ts` – PKCE, loopback listener, token storage/revocation.
 - `src/osm.ts` – HTTP client, XML builders/parsers, error mapping.
 - `src/nominatim.ts` – Nominatim client (opt-in geocoding; enforces 1 req/s, caches, per the Nominatim usage policy).
+- `src/confirm.ts` – `askUser` / `confirmWrite` over MCP elicitation; skips (never throws) when the client cannot ask.
+- `src/guard.ts` – per-session bulk-edit guard (`WriteGuard`), used by the edit tools; see `OSM_GUARD_*`.
 - `src/patch.ts` – tag-patch logic behind `osm_patch_tags`.
 - `skills/` – Agent Skills served as `skill://` resources (one folder per skill, `SKILL.md` + optional references); `src/skills.ts` loads them once at startup and `createServer` attaches them. Shipped in the npm package via `files`.
 - `src/gpx.ts` – GPX summarizer (keeps thousands of points out of the model's context).
