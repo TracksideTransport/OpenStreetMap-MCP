@@ -100,6 +100,23 @@ describe("write guard", () => {
     await t.close();
   });
 
+  it("counts calls that run in parallel together", async () => {
+    const t = await connect(undefined);
+    const [a, b] = await Promise.all([t.call("osm_create_changeset", { comment: "a" }), t.call("osm_create_changeset", { comment: "b" })]);
+    expect([a, b].filter((r) => r.json().refused).length).toBe(1);
+    expect(creates()).toBe(1);
+    await t.close();
+  });
+
+  it("does not count a write that failed, so a retry is not penalised", async () => {
+    const t = await connect(undefined);
+    const bad = await t.call("osm_create_changeset", { comment: "x".repeat(300) }); // rejected by the tool schema before any write
+    expect(bad.isError).toBe(true);
+    expect((await t.call("osm_create_changeset", { comment: "ok" })).isError).toBe(false);
+    expect(creates()).toBe(1);
+    await t.close();
+  });
+
   it.each([
     ["limits set to 0", { OSM_GUARD_ELEMENTS: "0", OSM_GUARD_CHANGESETS: "0" }],
     ["OSM_CONFIRM_WRITES=off", { OSM_CONFIRM_WRITES: "off" }],

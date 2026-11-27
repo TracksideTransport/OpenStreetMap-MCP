@@ -28,9 +28,9 @@ export function instructionsFor(cfg: Config, interactiveLogin: boolean, hasSkill
   );
 }
 
-export function createServer(cfg: Config = loadConfig(), auth: AuthLike = new Auth(cfg), skills?: SkillsCatalog) {
+export function createServer(cfg: Config = loadConfig(), auth: AuthLike = new Auth(cfg), skills?: SkillsCatalog, guard: WriteGuard = new WriteGuard(cfg)) {
   const osm = new OsmClient(cfg, auth);
-  const ctx = { cfg, auth, osm, guard: new WriteGuard(cfg) };
+  const ctx = { cfg, auth, osm, guard };
   const server = new McpServer(
     { name: SERVER_NAME, version: VERSION },
     {

@@ -23,6 +23,9 @@ export interface Planned {
 export class WriteGuard {
   changesets = 0;
   elements = 0;
+  /** Reserved by calls that passed `check` but have not finished writing; counted so parallel calls cannot slip past the limit. */
+  private pendingChangesets = 0;
+  private pendingElements = 0;
   private elementLimit: number;
   private changesetLimit: number;
   private readonly baseElements: number;
@@ -38,11 +41,47 @@ export class WriteGuard {
     return this.cfg.confirmWrites && (this.elementLimit > 0 || this.changesetLimit > 0);
   }
 
-  /** Returns undefined to go ahead, or a tool result object that says why not. */
-  async check(ctx: ServerContext, p: Planned): Promise<object | undefined> {
+  /**
+   * Run one write behind the guard. The planned amount is reserved before anything is awaited, so two tool calls issued
+   * in parallel are counted together; it is committed (or replaced by `actual`) when the write succeeds and released
+   * when it fails or is refused. Returns a tool-result object instead of calling `write` when the user (or the client's
+   * lack of elicitation) says no.
+   */
+  async run<T>(ctx: ServerContext, p: Planned, write: () => Promise<T>, actual?: (result: T) => { changesets?: number; elements?: number }): Promise<T | object> {
+    const plan = { changesets: p.changesets ?? 0, elements: p.elements ?? 0 };
+    this.pendingChangesets += plan.changesets;
+    this.pendingElements += plan.elements;
+    const release = () => {
+      this.pendingChangesets -= plan.changesets;
+      this.pendingElements -= plan.elements;
+    };
+    let stop: object | undefined;
+    try {
+      stop = await this.decide(ctx, p);
+    } catch (e) {
+      release();
+      throw e;
+    }
+    if (stop) {
+      release();
+      return stop;
+    }
+    try {
+      const result = await write();
+      release();
+      this.record(actual ? actual(result) : plan);
+      return result;
+    } catch (e) {
+      release();
+      throw e;
+    }
+  }
+
+  /** Asks if this call (already reserved in the pending counters) pushes the session over a limit. */
+  private async decide(ctx: ServerContext, p: Planned): Promise<object | undefined> {
     if (!this.enabled) return undefined;
-    const cs = this.changesets + (p.changesets ?? 0);
-    const el = this.elements + (p.elements ?? 0);
+    const cs = this.changesets + this.pendingChangesets;
+    const el = this.elements + this.pendingElements;
     const over = (this.changesetLimit > 0 && cs > this.changesetLimit) || (this.elementLimit > 0 && el > this.elementLimit);
     if (!over) return undefined;
 

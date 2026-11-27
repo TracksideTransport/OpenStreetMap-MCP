@@ -58,6 +58,7 @@ beforeAll(async () => {
         return void res.setHeader("content-type", "application/json").end(JSON.stringify({ access_token: `osmtoken-for-${p.get("code")}`, scope: "read_prefs write_api" }));
       }
       if (u.pathname === "/oauth2/revoke") return void res.end("{}");
+      if (u.pathname === "/api/0.6/changeset/create") return void res.end("9");
       if (u.pathname === "/api/0.6/user/details.json") return void res.setHeader("content-type", "application/json").end(JSON.stringify({ user: { id: 1, display_name: `user-of-${req.headers.authorization}` } }));
       if (u.pathname === "/api/0.6/permissions.json") return void res.setHeader("content-type", "application/json").end(JSON.stringify({ permissions: ["allow_write_api"] }));
       res.writeHead(404).end();
@@ -228,6 +229,19 @@ describe("authorization flow", () => {
     const ub = JSON.parse((await callTool(b, "osm_whoami")).text).user.display_name;
     expect(ua).not.toBe(ub);
     expect(osmSeen.filter((s) => s.path === "/api/0.6/user/details.json").map((s) => s.auth)).toEqual([ua.replace("user-of-", ""), ub.replace("user-of-", "")]);
+  });
+
+  it("keeps the bulk-edit guard's count across requests for one user, and per user", async () => {
+    const a = (await tokenFor(await login())).body.access_token as string;
+    const b = (await tokenFor(await login())).body.access_token as string;
+    const open = (t: string, comment: string) => callTool(t, "osm_create_changeset", { comment });
+    expect(JSON.parse((await open(a, "one")).text).changeset_id).toBe(9);
+    // each HTTP request builds a fresh server, but the second changeset is still counted against user a
+    const second = JSON.parse((await open(a, "two")).text);
+    expect(second.refused).toBe(true);
+    expect(second.message).toMatch(/OSM_GUARD_CHANGESETS/);
+    // user b has their own count
+    expect(JSON.parse((await open(b, "one")).text).changeset_id).toBe(9);
   });
 
   it("osm_logout revokes at OSM and ends the session", async () => {
