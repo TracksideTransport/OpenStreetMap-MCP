@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { Auth, type AuthLike } from "./auth.js";
 import { loadConfig, type Config } from "./config.js";
+import { WriteGuard } from "./guard.js";
 import { OsmClient } from "./osm.js";
 import { SERVER_NAME, VERSION } from "./version.js";
 import type { SkillsCatalog } from "./skills.js";
@@ -29,7 +30,7 @@ export function instructionsFor(cfg: Config, interactiveLogin: boolean, hasSkill
 
 export function createServer(cfg: Config = loadConfig(), auth: AuthLike = new Auth(cfg), skills?: SkillsCatalog) {
   const osm = new OsmClient(cfg, auth);
-  const ctx = { cfg, auth, osm };
+  const ctx = { cfg, auth, osm, guard: new WriteGuard(cfg) };
   const server = new McpServer(
     { name: SERVER_NAME, version: VERSION },
     {

@@ -5,6 +5,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- Bulk-edit guard: per session, the server counts changesets opened and elements written. Past 50 elements or a second changeset it asks you to confirm, shows the counts and a link to the OSM automated edits code of conduct, and takes an optional proposal link; after a yes it asks again when the element count has doubled or after ten more changesets. On clients that cannot ask it refuses and names `OSM_GUARD_ELEMENTS` / `OSM_GUARD_CHANGESETS`. It is off on the dev sandbox and with `OSM_CONFIRM_WRITES=off`. Counts are per server session, so the stateless HTTP transport (a fresh server per request) does not accumulate them yet. (#27)
+
 ## [0.3.0] - 2026-11-27
 
 ### Added

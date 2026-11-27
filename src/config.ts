@@ -23,6 +23,10 @@ export interface Config {
   nominatimBase: string;
   /** Ask the user (MCP elicitation) before risky or public writes. Default on; OSM_CONFIRM_WRITES=off disables. */
   confirmWrites: boolean;
+  /** Bulk-edit guard: confirm once a session writes more than this many elements (0 = off). Default 50; off on the dev sandbox. */
+  guardElements: number;
+  /** Bulk-edit guard: confirm before opening more than this many changesets in a session (0 = off). Default 1; off on the dev sandbox. */
+  guardChangesets: number;
   /** Streamable HTTP transport settings (only used with --http). */
   http: HttpConfig;
 }
@@ -63,6 +67,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     enableGeocoding: ["1", "true", "yes"].includes((env.OSM_ENABLE_GEOCODING ?? "").toLowerCase()),
     nominatimBase: (env.OSM_NOMINATIM_URL ?? "https://nominatim.openstreetmap.org").replace(/\/+$/, ""),
     confirmWrites: !(["0", "false", "no", "off"].includes((env.OSM_CONFIRM_WRITES ?? "").toLowerCase())),
+    guardElements: Number(env.OSM_GUARD_ELEMENTS ?? (dev ? 0 : 50)),
+    guardChangesets: Number(env.OSM_GUARD_CHANGESETS ?? (dev ? 0 : 1)),
     http: {
       host: httpHost,
       port: httpPort,

@@ -20,7 +20,7 @@ const element = z.object({
 
 const NOTE = "Edits are public and attributed to the authenticated OSM user. Follow the OSM editing guidelines; use OSM_ENV=dev to practise on the sandbox server.";
 
-export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
+export function registerEditTools(server: McpServer, { osm, cfg, guard }: Ctx) {
   server.registerTool(
     "osm_create_changeset",
     {
@@ -32,9 +32,12 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
       }),
       annotations: WRITE,
     },
-    safe(async ({ comment, source, extra_tags }) => {
+    safe(async ({ comment, source, extra_tags }, ctx) => {
+      const stop = await guard.check(ctx, { changesets: 1, what: `open a new changeset ("${comment}")` });
+      if (stop) return stop;
       const t: Record<string, string> = { created_by: "openstreetmap-mcp", comment, ...(source ? { source } : {}), ...extra_tags };
       const out = await osm.send("PUT", "/changeset/create", { body: buildChangesetXml(t) });
+      guard.record({ changesets: 1 });
       return { changeset_id: Number(out.trim()), api: cfg.apiBase };
     }),
   );
@@ -81,9 +84,12 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
       inputSchema: z.object({ changeset_id: id, element: element.omit({ id: true, version: true }) }),
       annotations: WRITE,
     },
-    safe(async ({ changeset_id, element: e }) => {
+    safe(async ({ changeset_id, element: e }, ctx) => {
       if (e.type === "node" && (e.lat === undefined || e.lon === undefined)) throw new Error("Nodes need lat and lon.");
+      const stop = await guard.check(ctx, { elements: 1, what: `create a ${e.type}` });
+      if (stop) return stop;
       const out = await osm.send("PUT", `/${e.type}/create`, { body: buildElementXml(e, changeset_id) });
+      guard.record({ elements: 1 });
       return { type: e.type, id: Number(out.trim()), version: 1 };
     }),
   );
@@ -95,9 +101,12 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
       inputSchema: z.object({ changeset_id: id, element: element.required({ id: true, version: true }) }),
       annotations: WRITE,
     },
-    safe(async ({ changeset_id, element: e }) => {
+    safe(async ({ changeset_id, element: e }, ctx) => {
       if (e.type === "node" && (e.lat === undefined || e.lon === undefined)) throw new Error("Nodes need lat and lon.");
+      const stop = await guard.check(ctx, { elements: 1, what: `modify ${e.type} ${e.id}` });
+      if (stop) return stop;
       const out = await osm.send("PUT", `/${e.type}/${e.id}`, { body: buildElementXml(e, changeset_id) });
+      guard.record({ elements: 1 });
       return { type: e.type, id: e.id, version: Number(out.trim()) };
     }),
   );
@@ -116,7 +125,13 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
       }),
       annotations: WRITE,
     },
-    safe(async (a) => patchTags(osm, a)),
+    safe(async (a, ctx) => {
+      const stop = await guard.check(ctx, { elements: 1, what: `change tags on ${a.type} ${a.id}` });
+      if (stop) return stop;
+      const r = await patchTags(osm, a);
+      if (r.changed) guard.record({ elements: 1 });
+      return r;
+    }),
   );
 
   server.registerTool(
@@ -127,9 +142,12 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
       annotations: DESTRUCTIVE,
     },
     safe(async ({ changeset_id, element: e }, ctx) => {
+      const stop = await guard.check(ctx, { elements: 1, what: `delete ${e.type} ${e.id}` });
+      if (stop) return stop;
       const go = await confirmWrite(ctx, cfg, `Delete ${e.type} ${e.id} (version ${e.version}) in changeset ${changeset_id} on ${cfg.env === "dev" ? "the OSM sandbox" : "the real OpenStreetMap"}? The deletion is public and attributed to your account.`);
       if (!go) return NOT_CONFIRMED;
       const out = await osm.send("DELETE", `/${e.type}/${e.id}`, { body: buildElementXml(e, changeset_id) });
+      guard.record({ elements: 1 });
       return { type: e.type, id: e.id, deleted: true, version: Number(out.trim()) };
     }),
   );
@@ -148,12 +166,16 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
     },
     safe(async ({ changeset_id, ...diff }, ctx) => {
       if (!diff.create?.length && !diff.modify?.length && !diff.delete?.length) throw new Error("Diff is empty.");
+      const count = (diff.create?.length ?? 0) + (diff.modify?.length ?? 0) + (diff.delete?.length ?? 0);
+      const stop = await guard.check(ctx, { elements: count, what: `upload ${count} element change(s) in one diff` });
+      if (stop) return stop;
       if (diff.delete?.length) {
         const n = (a?: unknown[]) => a?.length ?? 0;
         const go = await confirmWrite(ctx, cfg, `Upload to changeset ${changeset_id} on ${cfg.env === "dev" ? "the OSM sandbox" : "the real OpenStreetMap"}: ${n(diff.create)} create, ${n(diff.modify)} modify, ${n(diff.delete)} DELETE? Deletions are public and attributed to your account.`);
         if (!go) return NOT_CONFIRMED;
       }
       const out = await osm.send("POST", `/changeset/${changeset_id}/upload`, { body: buildOsmChangeXml(diff, changeset_id) });
+      guard.record({ elements: count });
       return { results: parseDiffResult(out) };
     }),
   );

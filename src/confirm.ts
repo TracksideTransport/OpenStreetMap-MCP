@@ -11,11 +11,11 @@ import type { Config } from "./config.js";
 export type AskResult =
   | { status: "confirmed"; values: Record<string, unknown> }
   | { status: "declined" | "cancelled" }
-  | { status: "skipped"; reason: string };
+  | { status: "skipped"; cause: "off" | "unsupported"; reason: string };
 
 type Field =
   | { type: "boolean"; title: string; description?: string; default?: boolean }
-  | { type: "string"; title: string; description?: string; enum: string[]; default?: string };
+  | { type: "string"; title: string; description?: string; enum?: string[]; default?: string };
 
 const SKIP_CODES = new Set<string>([SdkErrorCode.CapabilityNotSupported, SdkErrorCode.MethodNotSupportedByProtocolVersion]);
 
@@ -30,18 +30,19 @@ export async function askUser(
   cfg: Pick<Config, "confirmWrites">,
   message: string,
   fields: Record<string, Field>,
+  required: string[] = Object.keys(fields),
 ): Promise<AskResult> {
-  if (!cfg.confirmWrites) return { status: "skipped", reason: "confirmations are turned off (OSM_CONFIRM_WRITES)" };
+  if (!cfg.confirmWrites) return { status: "skipped", cause: "off", reason: "confirmations are turned off (OSM_CONFIRM_WRITES)" };
   try {
     const r = await ctx.mcpReq.elicitInput({
       mode: "form",
       message,
-      requestedSchema: { type: "object", properties: fields, required: Object.keys(fields) },
+      requestedSchema: { type: "object", properties: fields, required },
     });
     if (r.action === "accept") return { status: "confirmed", values: (r.content ?? {}) as Record<string, unknown> };
     return { status: r.action === "decline" ? "declined" : "cancelled" };
   } catch (e) {
-    if (e instanceof SdkError && SKIP_CODES.has(e.code)) return { status: "skipped", reason: "the client does not support elicitation" };
+    if (e instanceof SdkError && SKIP_CODES.has(e.code)) return { status: "skipped", cause: "unsupported", reason: "the client does not support elicitation" };
     throw e;
   }
 }
