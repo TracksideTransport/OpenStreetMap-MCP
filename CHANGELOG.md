@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 - The server now asks you to confirm risky or public writes through MCP elicitation: `osm_delete_element`, `osm_upload_diff` when it deletes, and `osm_delete_gpx` ask yes/no, and `osm_upload_gpx` and a visibility change in `osm_update_gpx` let you choose `trackable` or `identifiable` yourself (the model's value is only the suggestion). Declining or dismissing makes no request. Clients without elicitation, and `OSM_CONFIRM_WRITES=off`, keep the old behavior. (#16)
+- New `osm-bulk-edits` skill: before any scripted, repeated or dataset-based edit, ask for the discussed community proposal, check the source's licence, tag changesets honestly (`mechanical=yes`, no `import=no` for dataset edits), and stop on objection. The server instructions now state that such edits fall under the OSM automated edits code of conduct and need a proposal first, even on hosts without skills support. (#26)
 
 ### Fixed
 - `test/client.test.ts` and `test/patch.test.ts` read the developer's real token file, so they failed once someone had logged in on that machine; they now use an empty config directory.

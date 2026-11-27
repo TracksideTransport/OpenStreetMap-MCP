@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { SKILLS_DIR, loadServerSkills } from "../src/skills.js";
 import { hermeticEnv, startServer, type TestServer } from "./helpers/server.js";
 
-const EXPECTED = ["osm-find-a-place", "osm-gpx-privacy", "osm-untrusted-content"];
+const EXPECTED = ["osm-bulk-edits", "osm-find-a-place", "osm-gpx-privacy", "osm-untrusted-content"];
 const dirs = readdirSync(SKILLS_DIR).filter((d) => statSync(join(SKILLS_DIR, d)).isDirectory());
 
 function frontmatter(md: string): Record<string, string> {
@@ -106,6 +106,32 @@ describe("skills over the real stdio server", () => {
   });
 });
 
+describe("bulk edit guidance", () => {
+  const md = readFileSync(join(SKILLS_DIR, "osm-bulk-edits", "SKILL.md"), "utf8");
+
+  it("is in the instructions even on hosts without skills, and names the code of conduct", async () => {
+    const { instructionsFor } = await import("../src/server.js");
+    const { loadConfig } = await import("../src/config.js");
+    const text = instructionsFor(loadConfig({ OSM_CONFIG_DIR: "/nonexistent" }), true, false);
+    expect(text).toMatch(/automated edits code of conduct/i);
+    expect(text).toMatch(/proposal first/);
+    expect(text).not.toContain("osm-bulk-edits"); // no skill to point at
+  });
+
+  it("links the rules instead of copying them, and covers the points that were missed", () => {
+    for (const url of ["wiki.openstreetmap.org/wiki/Automated_Edits_code_of_conduct", "wiki.openstreetmap.org/wiki/Import/Guidelines", "Policy_on_Chatbots_and_Artificial_Intelligence"]) {
+      expect(md).toContain(url);
+    }
+    for (const must of ["mechanical=yes", "ODbL", "proposal", "Stop all bulk work", "revert"]) expect(md).toContain(must);
+  });
+
+  it("never tells the model to write the user's posts, or to tag dataset edits import=no", () => {
+    expect(md).toMatch(/Do not post the proposal or reply for the user/);
+    expect(md).toMatch(/Do not set `import=no` on edits that use an outside dataset/);
+    expect(md).not.toMatch(/import=no`?\s*(on|for) (all|every)/i);
+  });
+});
+
 describe("server instructions", () => {
   it("always carry the untrusted-text rule; mention skills only when they are loaded", async () => {
     const { instructionsFor } = await import("../src/server.js");
@@ -118,6 +144,7 @@ describe("server instructions", () => {
     const withSkills = instructionsFor(cfg, true, true);
     expect(withSkills).toContain("skill://");
     expect(withSkills).toContain("osm-untrusted-content");
+    expect(withSkills).toContain("osm-bulk-edits");
     expect(instructionsFor(cfg, false, true)).not.toContain("osm_login"); // HTTP mode signs in through OAuth
   });
 });
