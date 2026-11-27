@@ -1,5 +1,6 @@
-import type { McpServer } from "@modelcontextprotocol/server";
+import type { McpServer, ServerContext } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import { NOT_CONFIRMED, askUser, confirmWrite } from "../confirm.js";
 import { summarizeGpx } from "../gpx.js";
 import { DESTRUCTIVE, READ_ONLY, WRITE, safe, type Ctx } from "./util.js";
 
@@ -25,7 +26,21 @@ export function buildGpxMetadataXml(f: { id: number; name?: string; visibility: 
   return `<osm><gpx_file id="${f.id}"${f.name ? ` name="${esc(f.name)}"` : ""} visibility="${esc(f.visibility)}"><description>${esc(f.description)}</description>${tags}</gpx_file></osm>`;
 }
 
-export function registerGpxTools(server: McpServer, { osm }: Ctx) {
+/**
+ * Let the user make the privacy choice themselves. The model's value is pre-selected only as a suggestion; whatever the
+ * user submits wins. Returns undefined when the user declined, and the model's value when the client cannot ask.
+ */
+async function chooseVisibility(ctx: ServerContext, cfg: Ctx["cfg"], what: string, suggested: "trackable" | "identifiable"): Promise<"trackable" | "identifiable" | undefined> {
+  const r = await askUser(ctx, cfg, `${what}\n\nEvery option publishes the track points. ${VIS_HELP}`, {
+    visibility: { type: "string", title: "Visibility", description: VIS_HELP, enum: ["trackable", "identifiable"], default: suggested },
+  });
+  if (r.status === "skipped") return suggested;
+  if (r.status !== "confirmed") return undefined;
+  const v = r.values.visibility;
+  return v === "trackable" || v === "identifiable" ? v : undefined;
+}
+
+export function registerGpxTools(server: McpServer, { osm, cfg }: Ctx) {
   server.registerTool(
     "osm_get_trackpoints",
     {
@@ -96,7 +111,10 @@ export function registerGpxTools(server: McpServer, { osm }: Ctx) {
       }),
       annotations: WRITE,
     },
-    safe(async (a) => {
+    safe(async (a, ctx) => {
+      const chosen = await chooseVisibility(ctx, cfg, `Upload "${a.filename}" ("${a.description}") to ${cfg.env === "dev" ? "the OSM sandbox" : "the real OpenStreetMap"}? Choose who can see it.`, a.visibility);
+      if (!chosen) return NOT_CONFIRMED;
+      a = { ...a, visibility: chosen };
       const form = new FormData();
       form.set("file", new Blob([a.gpx], { type: "application/gpx+xml" }), a.filename);
       form.set("description", a.description);
@@ -114,8 +132,13 @@ export function registerGpxTools(server: McpServer, { osm }: Ctx) {
       inputSchema: z.object({ id, description: z.string().min(1).max(255).optional(), tags: z.array(z.string().min(1).max(50)).max(20).optional(), visibility: visibility.optional() }),
       annotations: WRITE,
     },
-    safe(async (a) => {
+    safe(async (a, ctx) => {
       if (a.description === undefined && a.tags === undefined && a.visibility === undefined) throw new Error("Nothing to do: provide description, tags, and/or visibility.");
+      if (a.visibility !== undefined) {
+        const chosen = await chooseVisibility(ctx, cfg, `Change the visibility of GPS trace ${a.id}?`, a.visibility);
+        if (!chosen) return NOT_CONFIRMED;
+        a = { ...a, visibility: chosen };
+      }
       const cur = pickGpxFile(await osm.getJson(`/gpx/${a.id}.json`, { auth: "required" }));
       const next = {
         id: a.id,
@@ -133,7 +156,8 @@ export function registerGpxTools(server: McpServer, { osm }: Ctx) {
   server.registerTool(
     "osm_delete_gpx",
     { description: `Permanently delete one of your GPS traces. ${SCOPE}`, inputSchema: z.object({ id }), annotations: DESTRUCTIVE },
-    safe(async ({ id }) => {
+    safe(async ({ id }, ctx) => {
+      if (!(await confirmWrite(ctx, cfg, `Permanently delete GPS trace ${id}? This cannot be undone.`))) return NOT_CONFIRMED;
       await osm.send("DELETE", `/gpx/${id}`);
       return { deleted: id };
     }),

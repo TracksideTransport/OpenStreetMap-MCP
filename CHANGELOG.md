@@ -5,6 +5,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+- The server now asks you to confirm risky or public writes through MCP elicitation: `osm_delete_element`, `osm_upload_diff` when it deletes, and `osm_delete_gpx` ask yes/no, and `osm_upload_gpx` and a visibility change in `osm_update_gpx` let you choose `trackable` or `identifiable` yourself (the model's value is only the suggestion). Declining or dismissing makes no request. Clients without elicitation, and `OSM_CONFIRM_WRITES=off`, keep the old behavior. (#16)
+
+### Fixed
+- `test/client.test.ts` and `test/patch.test.ts` read the developer's real token file, so they failed once someone had logged in on that machine; they now use an empty config directory.
+
 ## [0.2.2] - 2026-11-26
 
 ### Changed

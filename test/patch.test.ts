@@ -36,7 +36,7 @@ afterAll(() => srv.close());
 beforeEach(() => (puts = []));
 
 const osm = () => {
-  const cfg = loadConfig({ OSM_API_BASE: base, OSM_ACCESS_TOKEN: "tok" });
+  const cfg = loadConfig({ OSM_API_BASE: base, OSM_ACCESS_TOKEN: "tok", OSM_CONFIG_DIR: "/nonexistent-osm-mcp-test" });
   return new OsmClient(cfg, new Auth(cfg));
 };
 

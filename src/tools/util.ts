@@ -1,3 +1,4 @@
+import type { ServerContext } from "@modelcontextprotocol/server";
 import type { AuthLike } from "../auth.js";
 import type { Config } from "../config.js";
 import type { OsmClient } from "../osm.js";
@@ -83,10 +84,10 @@ export function fail(e: unknown) {
 }
 
 /** Wrap a handler so thrown errors become tool errors the model can read. */
-export function safe<A>(fn: (args: A) => Promise<unknown>) {
-  return async (args: A) => {
+export function safe<A>(fn: (args: A, ctx: ServerContext) => Promise<unknown>) {
+  return async (args: A, ctx: ServerContext) => {
     try {
-      return ok(await fn(args));
+      return ok(await fn(args, ctx));
     } catch (e) {
       return fail(e);
     }

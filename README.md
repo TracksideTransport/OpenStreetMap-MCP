@@ -55,6 +55,7 @@ Ask the assistant to call `osm_login`. It returns a URL; open it, approve, and t
 | `OSM_PUBLIC_URL` | `http://127.0.0.1:<port>` | Externally visible base URL for `--http` (OAuth issuer; **must be https** unless localhost) |
 | `OSM_HTTP_ALLOWED_HOSTS` | – | Extra Host header values to accept (comma separated); the public URL's host is always allowed |
 | `OSM_MCP_TOKEN_TTL` | `86400` | Lifetime in seconds of access tokens issued by `--http` |
+| `OSM_CONFIRM_WRITES` | on | Ask you (MCP elicitation) before deleting elements, uploading a diff that deletes, deleting a GPS trace, or uploading/changing a trace's visibility. `off` skips the prompts for unattended runs; clients without elicitation are never prompted |
 | `OSM_ENABLE_GEOCODING` | off | Set `true` to enable `osm_geocode` / `osm_reverse_geocode` (see [Place search](#place-search-nominatim-opt-in)) |
 | `OSM_NOMINATIM_URL` | `https://nominatim.openstreetmap.org` | Point at your own Nominatim instance or a provider |
 | `OSM_USER_AGENT` | `openstreetmap-mcp/…` | Sent on every request (OSM requires one) |

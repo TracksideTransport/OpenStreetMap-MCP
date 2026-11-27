@@ -29,7 +29,7 @@ beforeAll(async () => {
 afterAll(() => srv.close());
 
 const mk = (token?: string) => {
-  const cfg = loadConfig({ OSM_API_BASE: base, OSM_ACCESS_TOKEN: token });
+  const cfg = loadConfig({ OSM_API_BASE: base, OSM_ACCESS_TOKEN: token, OSM_CONFIG_DIR: "/nonexistent-osm-mcp-test" });
   return new OsmClient(cfg, new Auth(cfg));
 };
 
