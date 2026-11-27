@@ -62,10 +62,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Write requests now send `Accept: application/xml`; with JSON, `osm_upload_diff` lost its per-element results (new ids and versions).
 - Clarified that changeset comments are only accepted on closed changesets.
 
-[Unreleased]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.2.2...HEAD
-[0.2.2]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.1.2...v0.2.0
-[0.1.2]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/releases/tag/v0.1.0
+[Unreleased]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.1.2...v0.2.0
+[0.1.2]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/TracksideTransport/OpenStreetMap-MCP/releases/tag/v0.1.0

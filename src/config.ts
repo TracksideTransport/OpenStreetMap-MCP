@@ -56,7 +56,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     staticToken: env.OSM_ACCESS_TOKEN || undefined,
     redirectPort: Number(env.OSM_REDIRECT_PORT ?? 8787),
     scopes: env.OSM_SCOPES ? env.OSM_SCOPES.split(/[\s,]+/).filter(Boolean) : DEFAULT_SCOPES,
-    userAgent: env.OSM_USER_AGENT ?? "openstreetmap-mcp/0.1 (+https://github.com/sohampatwardhan/OpenStreetMap-MCP)",
+    userAgent: env.OSM_USER_AGENT ?? "openstreetmap-mcp/0.1 (+https://github.com/TracksideTransport/OpenStreetMap-MCP)",
     tokenFile: join(configDir, `tokens-${osmEnv}.json`),
     enableGeocoding: ["1", "true", "yes"].includes((env.OSM_ENABLE_GEOCODING ?? "").toLowerCase()),
     nominatimBase: (env.OSM_NOMINATIM_URL ?? "https://nominatim.openstreetmap.org").replace(/\/+$/, ""),

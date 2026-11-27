@@ -14,7 +14,7 @@ Usage: openstreetmap-mcp [--http] [--port <n>] [--host <addr>] [--public-url <ur
   --host <addr>      HTTP bind address (default 127.0.0.1, env OSM_HTTP_HOST)
   --public-url <url> externally visible base URL, https unless localhost (env OSM_PUBLIC_URL)
 
-Environment: see https://github.com/sohampatwardhan/OpenStreetMap-MCP#configuration
+Environment: see https://github.com/TracksideTransport/OpenStreetMap-MCP#configuration
 `;
 
 function parseArgs(argv: string[]): { http: boolean; env: NodeJS.ProcessEnv } {

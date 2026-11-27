@@ -45,11 +45,11 @@
   "author": "Soham Patwardhan",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sohampatwardhan/OpenStreetMap-MCP.git"
+    "url": "git+https://github.com/TracksideTransport/OpenStreetMap-MCP.git"
   },
-  "homepage": "https://github.com/sohampatwardhan/OpenStreetMap-MCP#readme",
+  "homepage": "https://github.com/TracksideTransport/OpenStreetMap-MCP#readme",
   "bugs": {
-    "url": "https://github.com/sohampatwardhan/OpenStreetMap-MCP/issues"
+    "url": "https://github.com/TracksideTransport/OpenStreetMap-MCP/issues"
   },
   "keywords": [
     "mcp",

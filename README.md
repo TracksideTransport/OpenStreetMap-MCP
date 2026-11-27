@@ -1,6 +1,6 @@
 # OpenStreetMap MCP
 
-[![CI](https://github.com/sohampatwardhan/OpenStreetMap-MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/sohampatwardhan/OpenStreetMap-MCP/actions/workflows/ci.yml)
+[![CI](https://github.com/TracksideTransport/OpenStreetMap-MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/TracksideTransport/OpenStreetMap-MCP/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/openstreetmap-mcp)](https://www.npmjs.com/package/openstreetmap-mcp)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -138,7 +138,7 @@ npm run dev        # stdio server from source
 
 ### Live sandbox tests (opt-in)
 `npm test` is hermetic and never touches the network. `npm run test:live` runs real create/patch/update/diff/delete/comment and notes cycles against the **OSM sandbox** (`master.apis.dev.openstreetmap.org`) through the real stdio server. It needs a sandbox token: either set `OSM_ACCESS_TOKEN`, or register a sandbox OAuth app (see above, on the sandbox site), run the server once with `OSM_ENV=dev` and `OSM_CLIENT_ID`, and call `osm_login`; the stored token is reused. Without a token the live tests are skipped. They are forced to `OSM_ENV=dev` and refuse to run against any host other than the sandbox or localhost. Everything they create is deleted afterwards (notes are closed, since OSM cannot delete them). They are not run in CI.
-See [AGENTS.md](AGENTS.md) for architecture and workflow, and [CONTRIBUTING.md](CONTRIBUTING.md). Work is tracked in [GitHub issues](https://github.com/sohampatwardhan/OpenStreetMap-MCP/issues).
+See [AGENTS.md](AGENTS.md) for architecture and workflow, and [CONTRIBUTING.md](CONTRIBUTING.md). Work is tracked in [GitHub issues](https://github.com/TracksideTransport/OpenStreetMap-MCP/issues).
 
 ## License
 [MIT](LICENSE). OpenStreetMap data is © OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright).
