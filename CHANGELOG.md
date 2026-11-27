@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-27
+
 ### Added
 - The server now asks you to confirm risky or public writes through MCP elicitation: `osm_delete_element`, `osm_upload_diff` when it deletes, and `osm_delete_gpx` ask yes/no, and `osm_upload_gpx` and a visibility change in `osm_update_gpx` let you choose `trackable` or `identifiable` yourself (the model's value is only the suggestion). Declining or dismissing makes no request. Clients without elicitation, and `OSM_CONFIRM_WRITES=off`, keep the old behavior. (#16)
 - New `osm-bulk-edits` skill: before any scripted, repeated or dataset-based edit, ask for the discussed community proposal, check the source's licence, tag changesets honestly (`mechanical=yes`, no `import=no` for dataset edits), and stop on objection. The server instructions now state that such edits fall under the OSM automated edits code of conduct and need a proposal first, even on hosts without skills support. (#26)
@@ -69,7 +71,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Write requests now send `Accept: application/xml`; with JSON, `osm_upload_diff` lost its per-element results (new ids and versions).
 - Clarified that changeset comments are only accepted on closed changesets.
 
-[Unreleased]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/TracksideTransport/OpenStreetMap-MCP/compare/v0.1.2...v0.2.0
