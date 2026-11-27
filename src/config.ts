@@ -21,6 +21,8 @@ export interface Config {
   /** Place-name search via Nominatim is opt-in; see the Nominatim usage policy. */
   enableGeocoding: boolean;
   nominatimBase: string;
+  /** Ask the user (MCP elicitation) before risky or public writes. Default on; OSM_CONFIRM_WRITES=off disables. */
+  confirmWrites: boolean;
   /** Streamable HTTP transport settings (only used with --http). */
   http: HttpConfig;
 }
@@ -60,6 +62,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     tokenFile: join(configDir, `tokens-${osmEnv}.json`),
     enableGeocoding: ["1", "true", "yes"].includes((env.OSM_ENABLE_GEOCODING ?? "").toLowerCase()),
     nominatimBase: (env.OSM_NOMINATIM_URL ?? "https://nominatim.openstreetmap.org").replace(/\/+$/, ""),
+    confirmWrites: !(["0", "false", "no", "off"].includes((env.OSM_CONFIRM_WRITES ?? "").toLowerCase())),
     http: {
       host: httpHost,
       port: httpPort,

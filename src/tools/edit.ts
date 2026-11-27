@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { buildChangesetXml, buildElementXml, buildOsmChangeXml, parseDiffResult } from "../osm.js";
+import { NOT_CONFIRMED, confirmWrite } from "../confirm.js";
 import { patchTags } from "../patch.js";
 import { DESTRUCTIVE, WRITE, safe, type Ctx } from "./util.js";
 
@@ -125,7 +126,9 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
       inputSchema: z.object({ changeset_id: id, element: element.required({ id: true, version: true }) }),
       annotations: DESTRUCTIVE,
     },
-    safe(async ({ changeset_id, element: e }) => {
+    safe(async ({ changeset_id, element: e }, ctx) => {
+      const go = await confirmWrite(ctx, cfg, `Delete ${e.type} ${e.id} (version ${e.version}) in changeset ${changeset_id} on ${cfg.env === "dev" ? "the OSM sandbox" : "the real OpenStreetMap"}? The deletion is public and attributed to your account.`);
+      if (!go) return NOT_CONFIRMED;
       const out = await osm.send("DELETE", `/${e.type}/${e.id}`, { body: buildElementXml(e, changeset_id) });
       return { type: e.type, id: e.id, deleted: true, version: Number(out.trim()) };
     }),
@@ -143,8 +146,13 @@ export function registerEditTools(server: McpServer, { osm, cfg }: Ctx) {
       }),
       annotations: DESTRUCTIVE,
     },
-    safe(async ({ changeset_id, ...diff }) => {
+    safe(async ({ changeset_id, ...diff }, ctx) => {
       if (!diff.create?.length && !diff.modify?.length && !diff.delete?.length) throw new Error("Diff is empty.");
+      if (diff.delete?.length) {
+        const n = (a?: unknown[]) => a?.length ?? 0;
+        const go = await confirmWrite(ctx, cfg, `Upload to changeset ${changeset_id} on ${cfg.env === "dev" ? "the OSM sandbox" : "the real OpenStreetMap"}: ${n(diff.create)} create, ${n(diff.modify)} modify, ${n(diff.delete)} DELETE? Deletions are public and attributed to your account.`);
+        if (!go) return NOT_CONFIRMED;
+      }
       const out = await osm.send("POST", `/changeset/${changeset_id}/upload`, { body: buildOsmChangeXml(diff, changeset_id) });
       return { results: parseDiffResult(out) };
     }),
