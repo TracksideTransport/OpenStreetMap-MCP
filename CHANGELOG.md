@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-26
+
 ### Changed
 - The `osm-find-a-place` skill now explains the `osm_get_bbox` filters and paging (`tag_filters`, `types`, `tagged_only`, `inside_bbox_only`, `compact`, `limit`, `offset`) and when to use them in dense areas.
 
@@ -60,7 +62,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Write requests now send `Accept: application/xml`; with JSON, `osm_upload_diff` lost its per-element results (new ids and versions).
 - Clarified that changeset comments are only accepted on closed changesets.
 
-[Unreleased]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/sohampatwardhan/OpenStreetMap-MCP/compare/v0.1.1...v0.1.2
