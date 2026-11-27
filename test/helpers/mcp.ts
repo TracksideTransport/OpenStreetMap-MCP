@@ -9,10 +9,13 @@ import { createServer } from "../../src/server.js";
 /** A tiny fake OSM API that records every request, so tests can assert that nothing was sent. */
 export async function startOsmMock() {
   const hits: string[] = [];
+  /** Request bodies, in the same order as `hits` */
+  const bodies: string[] = [];
   const srv: Server = createHttp((req, res) => {
     let body = "";
     req.on("data", (c) => (body += c));
     req.on("end", () => {
+      bodies.push(body);
       hits.push(`${req.method} ${req.url}${req.url === "/api/0.6/gpx" ? ` ${body.match(/name="visibility"\r?\n\r?\n(\w+)/)?.[1]}` : ""}`);
       if (req.url === "/api/0.6/gpx") return void res.end("77");
       if (req.url?.startsWith("/api/0.6/changeset/5/upload")) return void res.end('<diffResult><node old_id="1" new_id="1" new_version="2"/></diffResult>');
@@ -20,7 +23,7 @@ export async function startOsmMock() {
     });
   });
   await new Promise<void>((r) => srv.listen(0, "127.0.0.1", r));
-  return { base: `http://127.0.0.1:${(srv.address() as AddressInfo).port}`, hits, close: () => srv.close() };
+  return { base: `http://127.0.0.1:${(srv.address() as AddressInfo).port}`, hits, bodies, close: () => srv.close() };
 }
 
 export type Answer = { action: "accept" | "decline" | "cancel"; content?: Record<string, unknown> };
