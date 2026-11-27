@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { buildChangesetXml, buildElementXml, buildOsmChangeXml, parseDiffResult } from "../osm.js";
-import { NOT_CONFIRMED, confirmWrite } from "../confirm.js";
+import { NOT_CONFIRMED, confirmWrite, reviewPublicText } from "../confirm.js";
 import { patchTags } from "../patch.js";
 import { DESTRUCTIVE, WRITE, safe, type Ctx } from "./util.js";
 
@@ -66,12 +66,14 @@ export function registerEditTools(server: McpServer, { osm, cfg, guard }: Ctx) {
   server.registerTool(
     "osm_comment_changeset",
     {
-      description: "Post a comment on a changeset's discussion (any changeset, not only yours). OSM only accepts comments on CLOSED changesets, and this needs the write_changeset_comments scope.",
+      description: "Post a comment on a changeset's discussion (any changeset, not only yours). OSM only accepts comments on CLOSED changesets, and this needs the write_changeset_comments scope. The comment is public and posted under the user's name: the user is shown the text and can change it before it is sent, so give plain facts and do not compose a long reply for them. Do not use it to answer a mapper who objected to the user's edits; the user should reply in their own words.",
       inputSchema: z.object({ id, text: z.string().min(1).max(2000) }),
       annotations: WRITE,
     },
-    safe(async ({ id, text }) => {
-      await osm.send("POST", `/changeset/${id}/comment`, { body: new URLSearchParams({ text }).toString(), contentType: "application/x-www-form-urlencoded" });
+    safe(async ({ id, text }, ctx) => {
+      const final = await reviewPublicText(ctx, cfg, `Comment on changeset ${id}`, text, { required: true });
+      if (!final) return NOT_CONFIRMED;
+      await osm.send("POST", `/changeset/${id}/comment`, { body: new URLSearchParams({ text: final }).toString(), contentType: "application/x-www-form-urlencoded" });
       return { commented: id };
     }),
   );

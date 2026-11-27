@@ -1,11 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import { NOT_CONFIRMED, reviewPublicText } from "../confirm.js";
 import { READ_ONLY, WRITE, safe, type Ctx } from "./util.js";
 
 const noteId = z.number().int().positive();
 const text = z.string().min(1).max(10_000);
 
-export function registerNoteTools(server: McpServer, { osm }: Ctx) {
+export function registerNoteTools(server: McpServer, { osm, cfg }: Ctx) {
   server.registerTool(
     "osm_get_notes_in_bbox",
     {
@@ -46,11 +47,15 @@ export function registerNoteTools(server: McpServer, { osm }: Ctx) {
   server.registerTool(
     "osm_create_note",
     {
-      description: "Create a map note at a location. Requires auth with the write_notes scope. Public and visible to everyone.",
+      description: "Create a map note at a location. Requires auth with the write_notes scope. Public and visible to everyone, under the user's name: the user is shown the text and can change it before it is sent, so write plain facts (what, where, why) and do not compose long prose for them.",
       inputSchema: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180), text }),
       annotations: WRITE,
     },
-    safe(async (a) => JSON.parse(await osm.send("POST", "/notes.json", { query: { lat: a.lat, lon: a.lon, text: a.text } }))),
+    safe(async (a, ctx) => {
+      const final = await reviewPublicText(ctx, cfg, `Create a map note at ${a.lat}, ${a.lon}`, a.text, { required: true });
+      if (final === null || final === undefined) return NOT_CONFIRMED;
+      return JSON.parse(await osm.send("POST", "/notes.json", { query: { lat: a.lat, lon: a.lon, text: final } }));
+    }),
   );
 
   for (const [name, action, desc] of [
@@ -65,8 +70,11 @@ export function registerNoteTools(server: McpServer, { osm }: Ctx) {
         inputSchema: z.object({ id: noteId, text: action === "comment" ? text : text.optional() }),
         annotations: WRITE,
       },
-      safe(async ({ id, text }) =>
-        JSON.parse(await osm.send("POST", `/notes/${id}/${action}.json`, { query: { text } }))),
+      safe(async ({ id, text }, ctx) => {
+        const final = await reviewPublicText(ctx, cfg, `${action === "comment" ? "Comment on" : action === "close" ? "Close" : "Reopen"} map note ${id}`, text, { required: action === "comment" });
+        if (final === null) return NOT_CONFIRMED;
+        return JSON.parse(await osm.send("POST", `/notes/${id}/${action}.json`, { query: { text: final } }));
+      }),
     );
   }
 }
